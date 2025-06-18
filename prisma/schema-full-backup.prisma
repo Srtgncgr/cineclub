@@ -1,0 +1,544 @@
+// CineClub Database Schema
+// Modern film topluluk platformu için tasarlanmış comprehensive database schema
+
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ================================
+// USER MANAGEMENT MODELS
+// ================================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  username    String   @unique
+  displayName String?
+  password    String
+  role        UserRole @default(USER)
+  
+  // Profile Information
+  bio        String?
+  avatar     String?
+  coverImage String?
+  location   String?
+  website    String?
+  birthDate  DateTime?
+  joinDate   DateTime  @default(now())
+  
+  // Preferences
+  isPrivate          Boolean @default(false)
+  emailNotifications Boolean @default(true)
+  pushNotifications  Boolean @default(true)
+  
+  // Statistics (computed fields for performance)
+  movieCount     Int @default(0)
+  followerCount  Int @default(0)
+  followingCount Int @default(0)
+  
+  // Relationships
+  addedMovies Movie[]
+  votes       Vote[]
+  comments    Comment[]
+  favorites   Favorite[]
+  watchlist   Watchlist[]
+  lists       UserList[]
+  
+  // Social Features
+  sentMessages     Message[]    @relation("MessageSender")
+  receivedMessages Message[]    @relation("MessageReceiver")
+  followers        UserFollow[] @relation("UserFollowing")
+  following        UserFollow[] @relation("UserFollower")
+  
+  // Activity Tracking
+  activities UserActivity[]
+  sessions   UserSession[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model UserSession {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  deviceInfo String?
+  ipAddress  String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@map("user_sessions")
+}
+
+model UserFollow {
+  id          String @id @default(cuid())
+  followerId  String
+  followingId String
+  
+  follower  User @relation("UserFollower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowing", fields: [followingId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([followerId, followingId])
+  @@map("user_follows")
+}
+
+model UserActivity {
+  id      String       @id @default(cuid())
+  userId  String
+  type    ActivityType
+  details Json? // Flexible activity data
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+
+  @@map("user_activities")
+}
+
+// ================================
+// MOVIE & CONTENT MODELS  
+// ================================
+
+model Movie {
+  id     String  @id @default(cuid())
+  tmdbId BigInt? @unique @default(0)
+  imdbId String?
+  
+  // Basic Information
+  title         String
+  originalTitle String?
+  overview      String?
+  tagline       String?
+  
+  // Release Information
+  releaseDate DateTime?
+  year        Int?
+  runtime     Int // in minutes
+  
+  // Visual Assets
+  posterPath   String?
+  backdropPath String?
+  
+  // Metadata
+  adult       Boolean @default(false)
+  popularity  Float   @default(0)
+  voteAverage Float   @default(0)
+  voteCount   Int     @default(0)
+  
+  // Computed Statistics (for performance)
+  localVoteCount   Int   @default(0)
+  localVoteAverage Float @default(0)
+  favoriteCount    Int   @default(0)
+  commentCount     Int   @default(0)
+  
+  // Relationships
+  addedBy    User?           @relation(fields: [addedById], references: [id])
+  addedById  String?
+  genres     MovieGenre[]
+  categories MovieCategory[]
+  tags       MovieTag[]
+  cast       MovieCast[]
+  crew       MovieCrew[]
+  
+  votes       Vote[]
+  comments    Comment[]
+  favorites   Favorite[]
+  watchlist   Watchlist[]
+  listItems   UserListItem[]
+  weeklyItems WeeklyListMovie[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("movies")
+}
+
+model Genre {
+  id     String @id @default(cuid())
+  tmdbId BigInt @unique @default(0)
+  name   String @unique
+  slug   String @unique
+  
+  movies MovieGenre[]
+  
+  @@map("genres")
+}
+
+model MovieGenre {
+  movieId String
+  genreId String
+  
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+  
+  @@id([movieId, genreId])
+  @@map("movie_genres")
+}
+
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  icon        String?
+  color       String?
+  position    Int     @default(0)
+  isActive    Boolean @default(true)
+  
+  movies MovieCategory[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model MovieCategory {
+  movieId    String
+  categoryId String
+  
+  movie    Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@id([movieId, categoryId])
+  @@map("movie_categories")
+}
+
+model Tag {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  color       String?
+  popularity  Int     @default(0)
+  isActive    Boolean @default(true)
+  
+  movies MovieTag[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("tags")
+}
+
+model MovieTag {
+  movieId String
+  tagId   String
+  
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@id([movieId, tagId])
+  @@map("movie_tags")
+}
+
+// ================================
+// CAST & CREW MODELS
+// ================================
+
+model Person {
+  id           String    @id @default(cuid())
+  tmdbId       BigInt    @unique @default(0)
+  name         String
+  biography    String?
+  birthday     DateTime?
+  deathday     DateTime?
+  placeOfBirth String?
+  profilePath  String?
+  
+  castRoles MovieCast[]
+  crewRoles MovieCrew[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("people")
+}
+
+model MovieCast {
+  id        String @id @default(cuid())
+  movieId   String
+  personId  String
+  character String
+  order     Int
+  
+  movie  Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@unique([movieId, personId, character])
+  @@map("movie_cast")
+}
+
+model MovieCrew {
+  id         String @id @default(cuid())
+  movieId    String
+  personId   String
+  job        String
+  department String
+  
+  movie  Movie  @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
+  
+  @@unique([movieId, personId, job])
+  @@map("movie_crew")
+}
+
+// ================================
+// INTERACTION MODELS
+// ================================
+
+model Vote {
+  id      String  @id @default(cuid())
+  userId  String
+  movieId String
+  rating  Int // 1-10 scale
+  review  String?
+  
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, movieId])
+  @@map("votes")
+}
+
+model Comment {
+  id       String  @id @default(cuid())
+  userId   String
+  movieId  String
+  content  String
+  parentId String?
+  rating   Int?    // 1-5 yıldız rating (sadece ana yorumlar için)
+  
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie   Movie     @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  parent  Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies Comment[] @relation("CommentReplies")
+  
+  // Interaction stats
+  likeCount    Int @default(0)
+  dislikeCount Int @default(0)
+  replyCount   Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model Favorite {
+  id      String @id @default(cuid())
+  userId  String
+  movieId String
+  
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, movieId])
+  @@map("favorites")
+}
+
+model Watchlist {
+  id      String @id @default(cuid())
+  userId  String
+  movieId String
+  watched Boolean @default(false) // Film izlendi mi?
+  
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  watchedAt DateTime? // İzlenme tarihi
+  
+  @@unique([userId, movieId])
+  @@map("watchlist")
+}
+
+// ================================
+// LIST MANAGEMENT MODELS
+// ================================
+
+model UserList {
+  id          String  @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  isPublic    Boolean @default(true)
+  
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items UserListItem[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_lists")
+}
+
+model UserListItem {
+  id       String  @id @default(cuid())
+  listId   String
+  movieId  String
+  position Int
+  note     String?
+  
+  list  UserList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  movie Movie    @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([listId, movieId])
+  @@map("user_list_items")
+}
+
+model WeeklyList {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  status      WeeklyStatus @default(UPCOMING)
+  
+  movies WeeklyListMovie[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("weekly_lists")
+}
+
+model WeeklyListMovie {
+  id           String @id @default(cuid())
+  weeklyListId String
+  movieId      String
+  position     Int
+  voteCount    Int    @default(0)
+  
+  weeklyList WeeklyList @relation(fields: [weeklyListId], references: [id], onDelete: Cascade)
+  movie      Movie      @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  
+  @@unique([weeklyListId, movieId])
+  @@map("weekly_list_movies")
+}
+
+// ================================
+// MESSAGING MODELS
+// ================================
+
+model Message {
+  id         String      @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  type       MessageType @default(DIRECT)
+  isRead     Boolean     @default(false)
+  
+  sender   User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("messages")
+}
+
+// ================================
+// ADMIN & MODERATION MODELS
+// ================================
+
+model AdminLog {
+  id      String  @id @default(cuid())
+  adminId String
+  action  String
+  target  String?
+  details Json?
+  
+  createdAt DateTime @default(now())
+
+  @@map("admin_logs")
+}
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  targetType ReportType
+  targetId   String
+  reason     String
+  details    String?
+  status     ReportStatus @default(PENDING)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reports")
+}
+
+// ================================
+// ENUMS
+// ================================
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ActivityType {
+  MOVIE_RATED
+  MOVIE_REVIEWED
+  MOVIE_FAVORITED
+  COMMENT_POSTED
+  USER_FOLLOWED
+  LIST_CREATED
+  PROFILE_UPDATED
+}
+
+enum WeeklyStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum MessageType {
+  DIRECT
+  SYSTEM
+  NOTIFICATION
+}
+
+enum ReportType {
+  USER
+  COMMENT
+  REVIEW
+  MESSAGE
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
