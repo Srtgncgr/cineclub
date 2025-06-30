@@ -24,9 +24,9 @@ export async function POST(
     const { rating } = await request.json();
 
     // Oy validasyonu
-    if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+    if (rating !== 0 && (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating))) {
       return NextResponse.json(
-        { error: 'Geçerli bir puan giriniz (1-5 arası tam sayı)' },
+        { error: 'Geçerli bir puan giriniz (0-5 arası tam sayı, 0=puan kaldır)' },
         { status: 400 }
       );
     }
@@ -55,50 +55,80 @@ export async function POST(
       );
     }
 
-    // Mevcut oyu kontrol et
-    const existingVote = await prisma.vote.findUnique({
+    // Mevcut comment/rating kontrolü
+    const existingComment = await prisma.comment.findFirst({
       where: {
-        userId_movieId: {
           userId: user.id,
           movieId: resolvedParams.id
         }
-      }
     });
 
-    let vote;
+    let comment;
     
-    if (existingVote) {
-      // Mevcut oyu güncelle
-      vote = await prisma.vote.update({
-        where: {
-          userId_movieId: {
-            userId: user.id,
-            movieId: resolvedParams.id
-          }
-        },
+    if (existingComment) {
+      if (rating === 0) {
+        // Eğer sadece rating varsa ve content boşsa, kaydı sil
+        if (!existingComment.content || existingComment.content.trim() === "") {
+          await prisma.comment.delete({
+            where: { id: existingComment.id }
+          });
+          comment = null; // Silindi
+        } else {
+          // Content varsa sadece rating'i 0 yap
+          comment = await prisma.comment.update({
+            where: { id: existingComment.id },
+            data: {
+              rating: 0,
+              updatedAt: new Date()
+            }
+          });
+        }
+      } else {
+        // Normal rating güncellemesi
+        comment = await prisma.comment.update({
+          where: { id: existingComment.id },
         data: {
           rating: rating,
           updatedAt: new Date()
         }
       });
+      }
     } else {
-      // Yeni oy ekle
-      vote = await prisma.vote.create({
+      if (rating === 0) {
+        return NextResponse.json({
+          success: true,
+          message: 'Puanınız zaten yok',
+          vote: null,
+          movieStats: {
+            localVoteCount: 0,
+            localVoteAverage: 0
+          }
+        });
+      } else {
+        // Yeni rating-only comment oluştur
+        comment = await prisma.comment.create({
         data: {
           userId: user.id,
           movieId: resolvedParams.id,
+            content: "", // Boş content, sadece rating
           rating: rating
         }
       });
     }
+    }
 
-    // Site içi film istatistiklerini güncelle (TMDB puanlarına dokunma!)
-    const votes = await prisma.vote.findMany({
-      where: { movieId: resolvedParams.id }
+    // Site içi film istatistiklerini güncelle
+    const comments = await prisma.comment.findMany({
+      where: { 
+        movieId: resolvedParams.id,
+        rating: { gt: 0 } // Sadece puanlı yorumları say
+      }
     });
 
-    const totalVotes = votes.length;
-    const averageRating = votes.reduce((sum: number, v: any) => sum + v.rating, 0) / totalVotes;
+    const totalVotes = comments.length;
+    const averageRating = totalVotes > 0 
+      ? comments.reduce((sum: number, c: any) => sum + c.rating, 0) / totalVotes 
+      : 0;
 
     await prisma.movie.update({
       where: { id: resolvedParams.id },
@@ -110,12 +140,12 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: existingVote ? 'Oyunuz güncellendi' : 'Oyunuz kaydedildi',
-      vote: {
-        rating: vote.rating,
-        createdAt: vote.createdAt,
-        updatedAt: vote.updatedAt
-      },
+      message: comment === null ? 'Puanınız kaldırıldı' : (existingComment ? 'Oyunuz güncellendi' : 'Oyunuz kaydedildi'),
+      vote: comment ? {
+        rating: comment.rating,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt
+      } : null,
       movieStats: {
         localVoteCount: totalVotes,
         localVoteAverage: Number(averageRating.toFixed(1))
@@ -160,21 +190,19 @@ export async function GET(
       );
     }
 
-    // Kullanıcının bu filme verdiği oyu bul
-    const vote = await prisma.vote.findUnique({
+    // Kullanıcının bu filme verdiği comment/rating'i bul
+    const comment = await prisma.comment.findFirst({
       where: {
-        userId_movieId: {
           userId: user.id,
           movieId: resolvedParams.id
-        }
       }
     });
 
     return NextResponse.json({
-      userVote: vote ? {
-        rating: vote.rating,
-        createdAt: vote.createdAt,
-        updatedAt: vote.updatedAt
+      userVote: comment ? {
+        rating: comment.rating,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt
       } : null
     });
 

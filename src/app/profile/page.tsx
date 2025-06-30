@@ -7,6 +7,7 @@ import {
   Settings, 
   Star, 
   Heart, 
+  HeartOff,
   Film, 
   Calendar,
   TrendingUp,
@@ -66,6 +67,15 @@ export default function ProfilePage() {
     if (posterPath.startsWith('http')) return posterPath; // Zaten tam URL
     if (posterPath.startsWith('/')) return `https://image.tmdb.org/t/p/w500${posterPath}`; // TMDB path
     return `/placeholder.svg`; // Fallback
+  };
+
+  // Tarih formatlamayı güvenli şekilde yap (hydration sorununu önlemek için)
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
   };
   const [user, setUser] = useState<UserProfile | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
@@ -185,6 +195,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleRemoveFromFavorites = async (movieId: string) => {
+    try {
+      const response = await fetch(`/api/movies/${movieId}/favorite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // API response'ını kontrol et, favorilerden çıkarıldı mı?
+        if (!data.isFavorite) {
+          // Favorilerden çıkarılan filmi state'lerden kaldır
+          setFavoriteMovies(prev => prev.filter(movie => movie.id !== movieId));
+          setAllFavoriteMovies(prev => prev.filter(movie => movie.id !== movieId));
+          
+          // İstatistikleri güncelle
+          if (stats) {
+            setStats(prev => prev ? {
+              ...prev,
+              favoriteMovies: prev.favoriteMovies - 1
+            } : null);
+          }
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Favorilerden çıkarma hatası:', errorData);
+        alert('Film favorilerden çıkarılamadı. Lütfen tekrar deneyin.');
+      }
+    } catch (error) {
+      console.error('Favorilerden çıkarma hatası:', error);
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Genel Bakış', icon: User },
     { id: 'favorites', label: 'Favoriler', icon: Heart },
@@ -197,6 +244,18 @@ export default function ProfilePage() {
     if (activeTab === 'lists' && session?.user?.id) {
       fetchWatchlist();
     }
+  }, [activeTab, session?.user?.id]);
+
+  // Sayfa focus olduğunda verileri yenile (film detayından dönüldüğünde)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (activeTab === 'lists' && session?.user?.id) {
+        fetchWatchlist();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, [activeTab, session?.user?.id]);
 
   if (loading) {
@@ -252,10 +311,7 @@ export default function ProfilePage() {
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                   <span>
-                    {new Date(user.joinDate).toLocaleDateString('tr-TR', { 
-                      year: 'numeric', 
-                      month: 'long' 
-                    })} tarihinde katıldı
+                    {new Date(user.joinDate).getFullYear()} yılında katıldı
                   </span>
                           </div>
                       </div>
@@ -301,10 +357,6 @@ export default function ProfilePage() {
               <div className="flex items-center gap-2">
                 <div className="text-lg font-bold text-gray-900">{stats.favoriteMovies}</div>
                 <div className="text-sm text-gray-600">Favori</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-lg font-bold text-gray-900">{stats.listsCreated}</div>
-                <div className="text-sm text-gray-600">Liste</div>
               </div>
             </div>
           )}
@@ -458,7 +510,7 @@ export default function ProfilePage() {
                         {rating.review && (
                             <p className="text-gray-700 text-sm mb-2">{rating.review}</p>
                         )}
-                          <p className="text-gray-500 text-xs">{new Date(rating.dateRated).toLocaleDateString('tr-TR')}</p>
+                          <p className="text-gray-500 text-xs">{formatDate(rating.dateRated)}</p>
                       </div>
                     </div>
                   ))}
@@ -518,23 +570,44 @@ export default function ProfilePage() {
                       src={formatPosterUrl(movie.poster)}
                       alt={movie.title}
                         className="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-200"
+                        onClick={() => router.push(`/movies/${movie.id}`)}
                         onError={(e) => {
                           const img = e.target as HTMLImageElement;
                           img.src = '/placeholder.svg';
                         }}
                     />
+                      
+                      {/* Rating Badge */}
                       <div className="absolute top-2 right-2">
                         <div className="flex items-center gap-1 bg-black/80 text-white px-2 py-1 rounded text-xs">
                           <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
                           {movie.rating.toFixed(1)}
                         </div>
                       </div>
+
+                      {/* Hover Overlay - Butona engel olmayacak şekilde */}
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none" />
+
+                      {/* Favoriden Çıkar Butonu */}
+                      <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            handleRemoveFromFavorites(movie.id);
+                          }}
+                          className="p-1.5 bg-white/90 hover:bg-red-500 border border-gray-200 hover:border-red-500 text-red-500 hover:text-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 backdrop-blur-sm"
+                          title="Favorilerden çıkar"
+                        >
+                          <HeartOff className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <div className="mt-2">
                       <h4 className="font-medium text-gray-900 text-sm truncate">{movie.title}</h4>
                       <p className="text-gray-600 text-xs">{movie.year}</p>
                       <p className="text-gray-500 text-xs">
-                        {new Date(movie.dateAdded).toLocaleDateString('tr-TR')} tarihinde eklendi
+                        {formatDate(movie.dateAdded)} tarihinde eklendi
                       </p>
                   </div>
                 </div>
@@ -575,7 +648,7 @@ export default function ProfilePage() {
                         <h4 className="font-semibold text-gray-900">{rating.title} ({rating.year})</h4>
                       <div className="flex items-center gap-1">
                           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                          <span className="font-medium">{rating.rating}/10</span>
+                          <span className="font-medium">{rating.rating}/5</span>
                         </div>
                       </div>
                       {rating.review && (
@@ -589,7 +662,7 @@ export default function ProfilePage() {
                         ))}
                       </div>
                       <p className="text-gray-500 text-xs">
-                        {new Date(rating.dateRated).toLocaleDateString('tr-TR')} tarihinde oylandı
+                        {formatDate(rating.dateRated)} tarihinde oylandı
                       </p>
                   </div>
                 </div>
@@ -603,15 +676,27 @@ export default function ProfilePage() {
           <div className="bg-white rounded-xl shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900">İzleme Listem</h2>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => router.push('/watchlist')}
-                className="flex items-center gap-2"
-              >
-                <Film className="w-4 h-4" />
-                Tümünü Gör
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={fetchWatchlist}
+                  disabled={watchlistLoading}
+                  className="flex items-center gap-2"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Yenile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.push('/watchlist')}
+                  className="flex items-center gap-2"
+                >
+                  <Film className="w-4 h-4" />
+                  Tümünü Gör
+                </Button>
+              </div>
             </div>
             {watchlistLoading ? (
               <div className="text-center py-12">
@@ -665,7 +750,7 @@ export default function ProfilePage() {
                         <h4 className="font-medium text-gray-900 text-sm truncate">{movie.title}</h4>
                         <p className="text-gray-600 text-xs">{movie.year}</p>
                         <p className="text-gray-500 text-xs">
-                          {new Date(movie.dateAdded).toLocaleDateString('tr-TR')} tarihinde eklendi
+                          {formatDate(movie.dateAdded)} tarihinde eklendi
                         </p>
                       </div>
                     </div>

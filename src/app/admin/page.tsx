@@ -7,24 +7,13 @@ import { Button } from '@/components/ui/button';
 import { 
   Users, 
   Film, 
-  MessageCircle, 
   Star, 
   Calendar,
   Activity,
   Shield,
   Settings,
   BarChart3,
-  TrendingUp,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Eye,
-  UserPlus,
-  FileText,
-  Tag,
-  Play,
-  Heart,
-  MessageSquare
+  TrendingUp
 } from 'lucide-react';
 
 interface StatCard {
@@ -44,15 +33,7 @@ interface QuickAction {
   color: string;
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'user_join' | 'movie_add' | 'review_add' | 'report';
-  user: string;
-  action: string;
-  target?: string;
-  timestamp: string;
-  status: 'success' | 'warning' | 'error';
-}
+
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -177,13 +158,6 @@ export default function AdminDashboard() {
       color: 'from-purple-500 to-pink-500'
     },
     {
-      title: 'Kategori Yönetimi',
-      description: 'Film kategorilerini yönet',
-      icon: Tag,
-      route: '/admin/categories',
-      color: 'from-green-500 to-emerald-500'
-    },
-    {
       title: 'Haftalık Liste',
       description: 'Bu haftanın filmlerini belirle',
       icon: Calendar,
@@ -192,71 +166,7 @@ export default function AdminDashboard() {
     }
   ];
 
-  // Son aktiviteler
-  const recentActivities: RecentActivity[] = [
-    {
-      id: '1',
-      type: 'user_join',
-      user: 'Ahmet Yılmaz',
-      action: 'platforma katıldı',
-      timestamp: '5 dakika önce',
-      status: 'success'
-    },
-    {
-      id: '2',
-      type: 'movie_add',
-      user: 'Elif Demir',
-      action: 'yeni film önerdi',
-      target: 'Dune: Part Two',
-      timestamp: '12 dakika önce',
-      status: 'warning'
-    },
-    {
-      id: '3',
-      type: 'review_add',
-      user: 'Mehmet Kaya',
-      action: 'film değerlendirdi',
-      target: 'Inception',
-      timestamp: '18 dakika önce',
-      status: 'success'
-    },
-    {
-      id: '4',
-      type: 'report',
-      user: 'Ayşe Özkan',
-      action: 'içerik şikayet etti',
-      target: 'Yorum #1247',
-      timestamp: '25 dakika önce',
-      status: 'error'
-    },
-    {
-      id: '5',
-      type: 'user_join',
-      user: 'Can Yalçın',
-      action: 'platforma katıldı',
-      timestamp: '32 dakika önce',
-      status: 'success'
-    }
-  ];
 
-  const getActivityIcon = (type: string) => {
-    switch (type) {
-      case 'user_join': return UserPlus;
-      case 'movie_add': return Film;
-      case 'review_add': return Star;
-      case 'report': return AlertTriangle;
-      default: return Activity;
-    }
-  };
-
-  const getActivityColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'text-green-600 bg-green-50';
-      case 'warning': return 'text-yellow-600 bg-yellow-50';
-      case 'error': return 'text-red-600 bg-red-50';
-      default: return 'text-gray-600 bg-gray-50';
-    }
-  };
 
   const handleQuickAction = (route: string) => {
     router.push(route);
@@ -334,119 +244,36 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Hızlı Eylemler */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-primary" />
+            Hızlı Eylemler
+          </h2>
           
-          {/* Ana Eylemler */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                Hızlı Eylemler
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {quickActions.map((action, index) => {
-                  const IconComponent = action.icon;
-                  return (
-                    <div
-                      key={index}
-                      onClick={() => handleQuickAction(action.route)}
-                      className="p-5 border border-gray-200 rounded-xl hover:border-primary/30 hover:shadow-md transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-xl bg-gradient-to-br ${action.color} group-hover:scale-110 transition-transform`}>
-                          <IconComponent className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
-                            {action.title}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {action.description}
-                          </p>
-                        </div>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {quickActions.map((action, index) => {
+              const IconComponent = action.icon;
+              return (
+                <div
+                  key={index}
+                  onClick={() => handleQuickAction(action.route)}
+                  className="p-4 border border-gray-200 rounded-xl hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-pointer group bg-white"
+                >
+                  <div className="text-center">
+                    <div className={`mx-auto w-12 h-12 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center mb-3 group-hover:scale-105 transition-all duration-300`}>
+                      <IconComponent className="w-6 h-6 text-white" />
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-
-          </div>
-
-          {/* Son Aktiviteler */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                <Clock className="w-5 h-5 text-primary" />
-                Son Aktiviteler
-              </h2>
-              
-              <div className="space-y-4">
-                {recentActivities.map((activity) => {
-                  const IconComponent = getActivityIcon(activity.type);
-                  return (
-                    <div key={activity.id} className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-                      <div className={`p-2 rounded-lg ${getActivityColor(activity.status)}`}>
-                        <IconComponent className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {activity.user}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {activity.action}
-                          {activity.target && (
-                            <span className="font-medium text-primary"> {activity.target}</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {activity.timestamp}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              <Button variant="outline" className="w-full mt-4">
-                <Eye className="w-4 h-4 mr-2" />
-                Tüm Aktiviteleri Görüntüle
-              </Button>
-            </div>
-
-            {/* Haftalık Özet */}
-            <div className="bg-gradient-to-br from-primary to-primary/80 rounded-xl p-6 text-white mt-6">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                <Star className="w-5 h-5" />
-                Bu Hafta
-              </h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Yeni üyeler</span>
-                  <span className="font-semibold">+47</span>
+                    <h3 className="font-semibold text-gray-900 mb-1 group-hover:text-primary transition-colors">
+                      {action.title}
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      {action.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Film eklemeleri</span>
-                  <span className="font-semibold">+12</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Değerlendirmeler</span>
-                  <span className="font-semibold">+234</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm opacity-90">Mesajlar</span>
-                  <span className="font-semibold">+1,456</span>
-                </div>
-              </div>
-              
-              <Button variant="outline" className="w-full mt-4 text-primary bg-white hover:bg-gray-50">
-                <FileText className="w-4 h-4 mr-2" />
-                Detaylı Rapor
-              </Button>
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ type SortOption = 'newest' | 'oldest';
 
 interface CommentListProps {
   comments: Comment[];
+  movieId: string; // Movie ID'yi ekliyoruz
   onAddComment?: (data: { content: string; rating?: number }) => Promise<void>;
   onReplyToComment?: (commentId: string, content: string) => void;
   onEditComment?: (commentId: string, newContent: string) => void;
@@ -31,6 +32,7 @@ interface CommentListProps {
 
 export const CommentList: React.FC<CommentListProps> = ({
   comments,
+  movieId,
   onAddComment,
   onReplyToComment,
   onEditComment,
@@ -101,6 +103,7 @@ export const CommentList: React.FC<CommentListProps> = ({
       {showForm && showCommentForm && (
         <CommentForm
           onSubmit={handleAddComment}
+          movieId={movieId}
           showRating={allowRating}
           currentUser={currentUser ? {
             id: Number(currentUser.id),

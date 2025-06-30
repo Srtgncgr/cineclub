@@ -1,6 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { PrismaClient } from '@/generated/prisma';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 const db = new PrismaClient();
 
@@ -10,7 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ movi
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { movieId } = await params;
@@ -24,13 +24,13 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ movi
       },
     });
 
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       isInWatchlist: !!watchlistItem,
       item: watchlistItem
-    }));
+    });
   } catch (error) {
     console.error('Watchlist check error:', error);
-    return new Response("Could not check watchlist status", { status: 500 });
+    return NextResponse.json({ error: "Could not check watchlist status" }, { status: 500 });
   }
 }
 
@@ -40,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ mo
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { movieId } = await params;
@@ -56,7 +56,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ mo
     });
 
     if (!watchlistItem) {
-      return new Response("Movie not in watchlist", { status: 404 });
+      return NextResponse.json({ error: "Movie not in watchlist" }, { status: 404 });
     }
 
     const updatedItem = await db.watchlist.update({
@@ -69,13 +69,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ mo
       },
     });
 
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       success: true,
       item: updatedItem,
       message: watched ? 'Film izlendi olarak işaretlendi' : 'Film izlenmedi olarak işaretlendi'
-    }));
+    });
   } catch (error) {
     console.error('Watchlist update error:', error);
-    return new Response("Could not update watchlist item", { status: 500 });
+    return NextResponse.json({ error: "Could not update watchlist item" }, { status: 500 });
   }
 } 

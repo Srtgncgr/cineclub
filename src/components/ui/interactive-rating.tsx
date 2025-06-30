@@ -67,6 +67,9 @@ export function InteractiveRating({
   const handleRatingClick = async (rating: number) => {
     if (disabled || isSubmitting) return;
 
+    // Aynı yıldıza tıklandıysa puanı kaldır
+    const finalRating = currentUserRating === rating ? 0 : rating;
+
     setIsSubmitting(true);
     
     try {
@@ -75,7 +78,7 @@ export function InteractiveRating({
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ rating }),
+        body: JSON.stringify({ rating: finalRating }),
       });
 
       const data = await response.json();
@@ -84,8 +87,8 @@ export function InteractiveRating({
         throw new Error(data.error || 'Oy verme işlemi başarısız');
       }
       
-      setCurrentUserRating(rating);
-      onRatingChange?.(rating);
+      setCurrentUserRating(finalRating);
+      onRatingChange?.(finalRating);
       
       console.log('Rating submitted successfully:', data);
     } catch (error) {
@@ -151,6 +154,12 @@ export function InteractiveRating({
                 ? `${hoveredRating}/5 yıldız` 
                 : "Puan verin"
               }
+            </p>
+          )}
+          
+          {currentUserRating > 0 && !isLoading && (
+            <p className="text-xs text-gray-500">
+              Aynı yıldıza tekrar tıklayarak puanınızı kaldırabilirsiniz
             </p>
           )}
           

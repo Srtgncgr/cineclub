@@ -36,7 +36,7 @@ export async function GET(
           },
           where: { 
             job: { 
-              in: ['Director', 'Producer', 'Writer', 'Cinematography'] 
+              in: ['Director', 'Producer', 'Executive Producer', 'Writer', 'Screenplay', 'Cinematography'] 
             } 
           },
         },

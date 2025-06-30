@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { signIn } from "next-auth/react";
 import { 
   User,
   Mail, 
@@ -12,8 +13,6 @@ import {
   EyeOff, 
   AlertCircle, 
   Chrome,
-  Github,
-  Facebook,
   Film,
   ArrowLeft,
   Check,
@@ -144,9 +143,7 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSocialRegister = (provider: string) => {
-    console.log(`${provider} ile kayıt olunuyor...`);
-  };
+
 
   const getPasswordStrength = () => {
     const password = formData.password;
@@ -217,50 +214,7 @@ export default function RegisterPage() {
 
           {/* Form Section */}
           <div className="p-8">
-            
-            {/* Social Register Buttons */}
-            <div className="space-y-3 mb-6">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full border-gray-200 hover:bg-gray-50"
-                onClick={() => handleSocialRegister('Google')}
-              >
-                <Chrome className="w-5 h-5 mr-3 text-red-500" />
-                Google ile Kayıt Ol
-              </Button>
-              
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  variant="outline"
-                  size="md"
-                  className="border-gray-200 hover:bg-gray-50"
-                  onClick={() => handleSocialRegister('GitHub')}
-                >
-                  <Github className="w-5 h-5 mr-2" />
-                  GitHub
-                </Button>
-                <Button
-                  variant="outline"
-                  size="md"
-                  className="border-gray-200 hover:bg-gray-50"
-                  onClick={() => handleSocialRegister('Facebook')}
-                >
-                  <Facebook className="w-5 h-5 mr-2 text-blue-600" />
-                  Facebook
-                </Button>
-              </div>
-            </div>
 
-            {/* Divider */}
-            <div className="relative mb-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">veya e-posta ile</span>
-              </div>
-            </div>
 
             {/* Registration Form */}
             <form onSubmit={handleSubmit} className="space-y-5">

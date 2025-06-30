@@ -7,17 +7,8 @@ import { Avatar } from '@/components/ui/avatar';
 import { 
   Send,
   ArrowLeft,
-  MoreVertical,
-  Image,
-  Smile,
-  Paperclip,
-  Phone,
-  Video,
-  Info,
   AlertTriangle,
-  Loader2,
-  Check,
-  CheckCheck
+  Loader2
 } from 'lucide-react';
 
 interface Message {
@@ -185,17 +176,17 @@ export default function MessageDetail({ userId, initialUser, initialMessages }: 
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center max-w-md w-full">
+          <AlertTriangle className="w-16 h-16 text-primary mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Bir Hata Oluştu
           </h3>
           <p className="text-gray-600 mb-6">
             {error}
           </p>
           <Button variant="primary" onClick={() => window.location.reload()}>
-            Yeniden Dene
+            Sayfayı Yenile
           </Button>
         </div>
       </div>
@@ -204,146 +195,108 @@ export default function MessageDetail({ userId, initialUser, initialMessages }: 
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-4xl">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="hover:bg-gray-100"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Button>
-              
-              <div className="flex items-center gap-3">
-                <Avatar
-                  src={user?.avatar}
-                  alt={user?.name}
-                  size="md"
-                  showStatus
-                  status={user?.isOnline ? 'online' : 'offline'}
-                />
-                <div>
-                  <h2 className="font-semibold text-gray-900">
-                    {user?.name}
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    {user?.isOnline ? 'Çevrimiçi' : 'Çevrimdışı'}
-                  </p>
-                </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="text-gray-600 hover:text-primary hover:bg-primary/5"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            
+            <div className="flex items-center gap-3 flex-1">
+              <Avatar
+                src={user?.avatar}
+                alt={user?.name}
+                size="md"
+                showStatus
+                status={user?.isOnline ? 'online' : 'offline'}
+              />
+              <div>
+                <h2 className="font-semibold text-gray-900">
+                  {user?.name}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  @{user?.username}
+                </p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <Phone className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Video className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="sm">
-                <Info className="w-5 h-5" />
-              </Button>
             </div>
           </div>
         </div>
 
         {/* Messages */}
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6 min-h-[400px] max-h-[600px] overflow-y-auto">
           {loading ? (
-            <div className="flex justify-center p-8">
+            <div className="flex justify-center items-center h-96">
               <Loader2 className="w-8 h-8 text-primary animate-spin" />
             </div>
           ) : (
             <div className="space-y-4">
-              {hasMore && (
-                <div className="text-center">
-                  <Button
-                    variant="ghost"
-                    onClick={loadMoreMessages}
-                    disabled={loadingMore}
-                  >
-                    {loadingMore ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : null}
-                    Daha Fazla Mesaj Yükle
-                  </Button>
-                </div>
-              )}
 
-              {messages.map((message, index) => (
-                <div
-                  key={`${message.id}-${index}`}
-                  className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex gap-2 max-w-[70%] ${message.isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
-                    {!message.isOwn && (
-                      <Avatar
-                        src={message.sender.avatar}
-                        alt={message.sender.name}
-                        size="sm"
-                      />
-                    )}
-                    
-                    <div className={`flex flex-col ${message.isOwn ? 'items-end' : 'items-start'}`}>
-                      <div className={`rounded-lg px-4 py-2 ${
-                        message.isOwn
-                          ? 'bg-primary text-white'
-                          : 'bg-gray-100 text-gray-900'
-                      }`}>
-                        <p className="text-sm">{message.content}</p>
+              {messages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-96 text-gray-500">
+                  <div className="text-6xl mb-4">💬</div>
+                  <p className="text-lg font-medium mb-2">Henüz mesaj yok</p>
+                  <p className="text-sm">İlk mesajı göndererek konuşmayı başlatın!</p>
+                </div>
+              ) : (
+                messages.map((message, index) => (
+                  <div
+                    key={`${message.id}-${index}`}
+                    className={`flex ${message.isOwn ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex gap-3 max-w-[75%] ${message.isOwn ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {!message.isOwn && (
+                        <Avatar
+                          src={message.sender.avatar}
+                          alt={message.sender.name}
+                          size="sm"
+                        />
+                      )}
+                      
+                      <div className={`flex flex-col ${message.isOwn ? 'items-end' : 'items-start'}`}>
+                        <div className={`rounded-xl px-4 py-3 ${
+                          message.isOwn
+                            ? 'bg-primary text-white'
+                            : 'bg-gray-100 text-gray-900'
+                        }`}>
+                          <p className="text-sm leading-relaxed">{message.content}</p>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-1">
+                          {formatTime(message.timestamp)}
+                        </span>
                       </div>
-                      <span className="text-xs text-gray-500 mt-1">
-                        {formatTime(message.timestamp)}
-                        {message.isOwn && (
-                          <span className="ml-1">
-                            {message.isRead ? (
-                              <CheckCheck className="w-3 h-3 inline" />
-                            ) : (
-                              <Check className="w-3 h-3 inline" />
-                            )}
-                          </span>
-                        )}
-                      </span>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
         {/* Message Input */}
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm">
-              <Paperclip className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Image className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Smile className="w-5 h-5" />
-            </Button>
-            
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               placeholder="Mesajınızı yazın..."
-              className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-200"
             />
             
             <Button
               variant="primary"
-              size="sm"
+              size="md"
               onClick={handleSendMessage}
               disabled={!newMessage.trim() || isSending}
+              className="px-4 py-3"
             >
               {isSending ? (
                 <Loader2 className="w-5 h-5 animate-spin" />

@@ -178,6 +178,10 @@ export default function ProfileEditPage() {
 
     setSaved(true);
     
+      // Header'a profil güncellendiğini bildir
+      localStorage.setItem('profile-updated', Date.now().toString());
+      localStorage.removeItem('profile-updated');
+    
       // Şifre alanlarını temizle
       setFormData(prev => ({
         ...prev,
@@ -228,6 +232,8 @@ export default function ProfileEditPage() {
       setShowDeleteConfirm(false);
     }
   };
+
+
 
   const sections = [
     { id: 'personal', label: 'Kişisel Bilgiler', icon: User },
@@ -349,6 +355,8 @@ export default function ProfileEditPage() {
             {activeSection === 'personal' && (
                 <div className="bg-white rounded-xl shadow-sm p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-6">Kişisel Bilgiler</h2>
+                  
+
                   
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>

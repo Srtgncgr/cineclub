@@ -85,169 +85,6 @@ export default function Home() {
     fetchCategories();
   }, []);
 
-  // Placeholder film verileri
-  // const popularMovies = [];
-
-  // Bu haftanın seçilen filmleri
-  /* const weeklyMovies = [
-    {
-      id: 1,
-      title: "Parasite",
-      year: 2019,
-      rating: 8.6,
-      votes: 2456,
-      poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-      genres: ["Thriller", "Drama", "Comedy"],
-      director: "Bong Joon-ho",
-      description: "Oscar ödüllü güney kore yapımı çarpıcı sosyal drama",
-      weeklyTheme: "Uluslararası Sinema",
-      position: 1,
-      votes_this_week: 1847
-    },
-    {
-      id: 2,
-      title: "Spirited Away",
-      year: 2001,
-      rating: 9.3,
-      votes: 1789,
-      poster: "https://m.media-amazon.com/images/M/MV5BMjlmZmI5MDctNDE2YS00YWE0LWE5ZWItZDBhYWQ0NTcxNWRhXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SX300.jpg",
-      genres: ["Animation", "Adventure", "Family"],
-      director: "Hayao Miyazaki",
-      description: "Studio Ghibli'nin büyülü dünyasında unutulmaz bir yolculuk",
-      weeklyTheme: "Anime Klasikleri",
-      position: 2,
-      votes_this_week: 1653
-    },
-    {
-      id: 3,
-      title: "There Will Be Blood",
-      year: 2007,
-      rating: 8.2,
-      votes: 1234,
-      poster: "https://m.media-amazon.com/images/M/MV5BMjAxODQ4MDU5NV5BMl5BanBnXkFtZTcwMDU4MjU1MQ@@._V1_SX300.jpg",
-      genres: ["Drama"],
-      director: "Paul Thomas Anderson",
-      description: "Daniel Day-Lewis'in muhteşem performansıyla epik drama",
-      weeklyTheme: "Karakter Odaklı Dramalar",
-      position: 3,
-      votes_this_week: 982
-    }
-  ]; */
-
-  // Kategori verileri
-  /* const categories = [
-    {
-      id: 1,
-      name: "Aksiyon",
-      icon: Zap,
-      description: "Adrenalin dolu maceralar",
-      movieCount: 1284,
-      color: "from-red-500 to-orange-500",
-      borderColor: "border-red-500/20",
-      bgColor: "bg-red-500/10",
-      iconColor: "text-red-500",
-      popularMovies: [
-        {
-          title: "Mad Max: Fury Road",
-          year: 2015,
-          poster: "https://image.tmdb.org/t/p/w500/hA2ple9q4qnwxp3hKVNhroipsir.jpg",
-          rating: 8.1
-        },
-        {
-          title: "John Wick",
-          year: 2014,
-          poster: "https://image.tmdb.org/t/p/w500/fZPSd91yGE9fCcCe6OoQr6E3Bev.jpg",
-          rating: 7.4
-        },
-        {
-          title: "The Dark Knight",
-          year: 2008,
-          poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-          rating: 9.0
-        },
-        {
-          title: "Mission: Impossible - Fallout",
-          year: 2018,
-          poster: "https://image.tmdb.org/t/p/w500/AkJQpZp9WoNdj7pLYSj1L0RcMMN.jpg",
-          rating: 7.7
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: "Komedi",
-      icon: Laugh,
-      description: "Güldüren anlar",
-      movieCount: 967,
-      color: "from-yellow-500 to-orange-400",
-      borderColor: "border-yellow-500/20",
-      bgColor: "bg-yellow-500/10",
-      iconColor: "text-yellow-600",
-      popularMovies: [
-        {
-          title: "The Grand Budapest Hotel",
-          year: 2014,
-          poster: "https://image.tmdb.org/t/p/w500/eWdyYQreja6JGCzqHWXpWHDrrPo.jpg",
-          rating: 8.1
-        },
-        {
-          title: "Parasite",
-          year: 2019,
-          poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-          rating: 8.6
-        },
-        {
-          title: "Knives Out",
-          year: 2019,
-          poster: "https://image.tmdb.org/t/p/w500/pThyQovXQrw2m0s9x82twj48Jq4.jpg",
-          rating: 7.9
-        },
-        {
-          title: "Jojo Rabbit",
-          year: 2019,
-          poster: "https://image.tmdb.org/t/p/w500/7GsM4mtM0worCtIVeiQt28HieeN.jpg",
-          rating: 7.9
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: "Drama",
-      icon: Drama,
-      description: "Derin hikayeler",
-      movieCount: 2156,
-      color: "from-blue-600 to-purple-600",
-      borderColor: "border-blue-500/20",
-      bgColor: "bg-blue-500/10",
-      iconColor: "text-blue-600",
-      popularMovies: [
-        {
-          title: "The Shawshank Redemption",
-          year: 1994,
-          poster: "https://image.tmdb.org/t/p/w500/q6y0Go1tsGEsmtFryDOJo3dYHe.jpg",
-          rating: 9.3
-        },
-        {
-          title: "The Godfather",
-          year: 1972,
-          poster: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-          rating: 9.2
-        },
-        {
-          title: "Forrest Gump",
-          year: 1994,
-          poster: "https://image.tmdb.org/t/p/w500/saHP97rEBECbcdDbH82vLzCVdqM.jpg",
-          rating: 8.8
-        },
-        {
-          title: "Schindler's List",
-          year: 1993,
-          poster: "https://image.tmdb.org/t/p/w500/sF1U4EUQS8YHGqgMjYmv6Mjo2W0.jpg",
-          rating: 8.6
-        }
-      ]
-    }
-  ]; */
 
   const [activeCategory, setActiveCategory] = useState<any>(1);
 
@@ -552,17 +389,7 @@ export default function Home() {
             </p>
             
             {/* Countdown Timer */}
-            <div className="inline-flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-2 sm:py-3 bg-white border border-gray-200 rounded-xl shadow-sm">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
-              <span className="text-xs sm:text-sm text-gray-700">Yeni hafta başlangıcına:</span>
-              <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-bold text-gray-900">
-                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary/10 rounded text-primary">3</span>
-                <span className="text-gray-400">:</span>
-                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary/10 rounded text-primary">14</span>
-                <span className="text-gray-400">:</span>
-                <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary/10 rounded text-primary">27</span>
-              </div>
-            </div>
+           
           </div>
           
           {/* Weekly Movies Grid */}
@@ -643,32 +470,8 @@ export default function Home() {
               </div>
             ))}
           </div>
-          
-          {/* Action Buttons */}
-          <div className="text-center space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-              <Button 
-                variant="primary" 
-                size="lg"
-                className="px-8 py-3 text-lg font-semibold hover:bg-primary/90 transition-all duration-300"
-              >
-                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Bu Hafta Oy Ver
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="px-8 py-3 text-lg font-semibold hover:bg-primary hover:text-white hover:border-primary transition-all duration-300"
-              >
-                Geçmiş Listeler
-              </Button>
-            </div>
-
-            <p className="text-xs sm:text-sm text-gray-600">
-              🗳️ Haftalık oylamaya katıl ve topluluğun seçimini etkile
-            </p>
-          </div>
+        
+    
 
               </div>
       </section>

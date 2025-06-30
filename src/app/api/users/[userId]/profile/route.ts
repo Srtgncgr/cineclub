@@ -70,9 +70,12 @@ export async function GET(
       // Tüm favori filmleri al
     });
 
-    // Kullanıcının son oylamalarını al
-    const recentRatings = await prisma.vote.findMany({
-      where: { userId },
+    // Kullanıcının son oylamalarını al (Comment tablosundan rating'leri çek)
+    const recentRatings = await prisma.comment.findMany({
+      where: { 
+        userId,
+        rating: { gt: 0 } // Sadece puanlı yorumları al
+      },
       include: {
         movie: {
           include: {
@@ -113,13 +116,19 @@ export async function GET(
 
     // İzleme listesi ayrı API'den alınacak
 
-    // İstatistikleri hesapla
-    const totalVotes = await prisma.vote.count({
-      where: { userId }
+    // İstatistikleri hesapla (Comment tablosundan)
+    const totalVotes = await prisma.comment.count({
+      where: { 
+        userId,
+        rating: { gt: 0 }
+      }
     });
 
-    const averageRating = await prisma.vote.aggregate({
-      where: { userId },
+    const averageRating = await prisma.comment.aggregate({
+      where: { 
+        userId,
+        rating: { gt: 0 }
+      },
       _avg: {
         rating: true
       }
@@ -135,9 +144,10 @@ export async function GET(
     const thisMonth = new Date();
     thisMonth.setDate(1);
     
-    const thisMonthVotes = await prisma.vote.count({
+    const thisMonthVotes = await prisma.comment.count({
       where: {
         userId,
+        rating: { gt: 0 },
         createdAt: {
           gte: thisMonth
         }
@@ -154,8 +164,11 @@ export async function GET(
     });
 
     // En popüler türü bul
-    const genreStats = await prisma.vote.findMany({
-      where: { userId },
+    const genreStats = await prisma.comment.findMany({
+      where: { 
+        userId,
+        rating: { gt: 0 }
+      },
       include: {
         movie: {
           include: {
@@ -205,8 +218,8 @@ export async function GET(
       title: rating.movie.title,
       year: rating.movie.year,
       poster: formatPosterUrl(rating.movie.posterPath),
-      rating: rating.rating,
-      review: rating.review,
+      rating: rating.rating, // 1-5 skalasını olduğu gibi bırak
+      review: rating.content, // content alanı review olarak kullanılıyor
       dateRated: rating.createdAt.toISOString(),
       genres: rating.movie.genres.map((g: any) => g.genre.name)
     }));
@@ -226,7 +239,7 @@ export async function GET(
       },
       stats: {
         moviesRated: totalVotes,
-        averageRating: Math.round((averageRating._avg.rating || 0) * 10) / 10,
+        averageRating: Math.round((averageRating._avg.rating || 0) * 10) / 10, // 1-5 skalasını olduğu gibi bırak
         favoriteMovies: totalFavorites,
         listsCreated: totalLists,
         followers: user.followerCount,

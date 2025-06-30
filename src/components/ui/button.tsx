@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { ButtonSpinner } from './loading';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -67,7 +66,6 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       >
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-inherit">
-            <ButtonSpinner size={size} />
           </div>
         )}
         <span className={cn('flex items-center gap-2', isLoading && 'opacity-0')}>

@@ -64,11 +64,13 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     const getFallbackText = (fallback?: string, alt?: string) => {
       if (fallback) return fallback;
       if (alt) {
-        const words = alt.split(' ');
+        const words = alt.split(' ').filter(word => word.length > 0);
         if (words.length >= 2) {
           return `${words[0][0]}${words[1][0]}`.toUpperCase();
+        } else if (words.length === 1) {
+          // Tek kelime varsa sadece ilk harfi al
+          return words[0][0].toUpperCase();
         }
-        return alt.slice(0, 2).toUpperCase();
       }
       return 'U';
     };

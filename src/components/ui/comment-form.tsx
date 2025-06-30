@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { StarRating } from '@/components/ui/star-rating';
@@ -13,6 +13,7 @@ interface CommentFormProps {
   }) => Promise<void>;
   placeholder?: string;
   showRating?: boolean;
+  movieId: string; // Movie ID'yi ekliyoruz
   currentUser?: {
     id: number;
     name: string;
@@ -26,14 +27,39 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   onSubmit,
   placeholder = "Bu film hakkında ne düşünüyorsunuz?",
   showRating = true,
+  movieId,
   currentUser,
   maxLength = 1000,
   className
 }) => {
   const [content, setContent] = useState('');
   const [rating, setRating] = useState(0);
+  const [userRating, setUserRating] = useState(0); // Kullanıcının mevcut puanı
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [isLoadingRating, setIsLoadingRating] = useState(true);
+
+  // Kullanıcının mevcut puanını yükle
+  useEffect(() => {
+    const fetchUserRating = async () => {
+      try {
+        const response = await fetch(`/api/movies/${movieId}/vote`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.userVote?.rating) {
+            setUserRating(data.userVote.rating);
+            setRating(data.userVote.rating); // Form'da da göster
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user rating:', error);
+      } finally {
+        setIsLoadingRating(false);
+      }
+    };
+
+    fetchUserRating();
+  }, [movieId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,8 +74,8 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       return;
     }
 
-    if (showRating && rating === 0) {
-      setError('Lütfen bir puan verin');
+    if (showRating && userRating === 0) {
+      setError('Yorum yazmadan önce lütfen üstteki yıldızlardan puan verin');
       return;
     }
 
@@ -59,12 +85,11 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     try {
       await onSubmit({
         content: content.trim(),
-        rating: showRating ? rating : undefined
+        rating: showRating ? userRating : undefined
       });
       
-      // Form'u temizle
+      // Form'u temizle (rating'i temizleme, mevcut puanı koru)
       setContent('');
-      setRating(0);
     } catch (err) {
       setError('Yorum gönderilirken bir hata oluştu');
     } finally {
@@ -103,21 +128,36 @@ export const CommentForm: React.FC<CommentFormProps> = ({
         </div>
       </div>
 
-      {/* Rating (opsiyonel) */}
+      {/* Rating Bilgisi (sadece göster, değiştirme) */}
       {showRating && (
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Puanınız
           </label>
+          {isLoadingRating ? (
+            <div className="text-gray-500">Puan yükleniyor...</div>
+          ) : userRating > 0 ? (
+            <div className="flex items-center gap-2">
           <StarRating
-            rating={rating}
-            onRatingChange={setRating}
+                rating={userRating}
+                onRatingChange={() => {}} // Değiştirilemez
             size="lg"
-            showText
+                showText={false}
             className="mb-1"
           />
-          <p className="text-xs text-gray-500">
-            1-5 yıldız arasında puanlayın
+              <span className="text-lg font-semibold text-gray-900">
+                {userRating}/5
+              </span>
+            </div>
+          ) : (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-700">
+                Yorum yazmak için önce üstteki yıldızlardan puan verin
+              </p>
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-1">
+            Puanınızı değiştirmek için üstteki yıldızları kullanın
           </p>
         </div>
       )}
@@ -168,7 +208,6 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           variant="outline"
           onClick={() => {
             setContent('');
-            setRating(0);
             setError('');
           }}
           disabled={isSubmitting}

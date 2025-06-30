@@ -8,27 +8,13 @@ import SearchInput, { useSearchInput } from '@/components/ui/search-input';
 import { 
   Search,
   Filter, 
-  SlidersHorizontal,
-  Grid3X3,
-  List,
-  Calendar,
-  Star,
-  Tag,
   X,
-  ChevronDown,
-  ChevronUp,
-  ArrowUpDown,
-  TrendingUp,
-  Clock,
-  Eye
+  Star,
+  Calendar,
+  Tag,
+  SlidersHorizontal
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-// Mock data - normalde backend'den gelecek
-const categories = [
-  'Aksiyon', 'Drama', 'Komedi', 'Korku', 'Romantik', 'Bilim Kurgu', 
-  'Gerilim', 'Suç', 'Macera', 'Animasyon', 'Belgesel', 'Fantastik'
-];
 
 const years = Array.from({ length: 50 }, (_, i) => 2024 - i);
 
@@ -164,11 +150,11 @@ export default function SearchPage() {
     clearRecentSearches
   } = useSearchInput('', 300);
 
+  // Dinamik kategoriler - veritabanından gelecek
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedYears, setSelectedYears] = useState<number[]>([]);
-  const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState<'rating' | 'year' | 'title' | 'popularity'>('rating');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [localMovies, setLocalMovies] = useState<any[]>([]);
@@ -185,6 +171,44 @@ export default function SearchPage() {
     }
   }, [searchParams]);
 
+  // Kategorileri yükle
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/genres');
+        const fallbackCategories = [
+          'Aksiyon', 'Drama', 'Komedi', 'Korku', 'Romantik', 'Bilim Kurgu', 
+          'Gerilim', 'Suç', 'Macera', 'Animasyon', 'Belgesel', 'Fantastik',
+          'Tarih', 'Savaş', 'Western', 'Müzikal', 'Aile', 'Gizem', 
+          'TV Film', 'Biyografi', 'Spor', 'Müzik'
+        ];
+        
+        if (response.ok) {
+          const genres = await response.json();
+          const apiCategories = genres.map((g: any) => g.name);
+          
+          // API'den gelen kategoriler + fallback kategorileri birleştir (tekrarları kaldır)
+          const allCategories = [...new Set([...apiCategories, ...fallbackCategories])];
+          setCategories(allCategories.sort());
+        } else {
+          // API başarısızsa sadece fallback kategorileri kullan
+          setCategories(fallbackCategories);
+        }
+      } catch (error) {
+        console.error('Genres fetch error:', error);
+        // Fallback kategoriler - genişletilmiş liste
+        setCategories([
+          'Aksiyon', 'Drama', 'Komedi', 'Korku', 'Romantik', 'Bilim Kurgu', 
+          'Gerilim', 'Suç', 'Macera', 'Animasyon', 'Belgesel', 'Fantastik',
+          'Tarih', 'Savaş', 'Western', 'Müzikal', 'Aile', 'Gizem', 
+          'TV Film', 'Biyografi', 'Spor', 'Müzik'
+        ]);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   // Local movies'i yükle
   useEffect(() => {
     const fetchLocalMovies = async () => {
@@ -192,7 +216,53 @@ export default function SearchPage() {
         const response = await fetch('/api/movies');
         if (response.ok) {
           const movies = await response.json();
-          setLocalMovies(movies);
+          // Önce filmleri director bilgisi olmadan yükle (hızlı gösterim için)
+          setLocalMovies(movies.map((movie: any) => ({ ...movie, director: null })));
+          
+          // Sonra director bilgilerini batch halinde yükle (en fazla 5'er tane)
+          const batchSize = 5;
+          for (let i = 0; i < movies.length; i += batchSize) {
+            const batch = movies.slice(i, i + batchSize);
+            try {
+              const moviesWithDirectors = await Promise.all(
+                batch.map(async (movie: any) => {
+                  try {
+                    const movieResponse = await fetch(`/api/movies/${movie.id}`);
+                    if (movieResponse.ok) {
+                      const movieDetails = await movieResponse.json();
+                      const directors = movieDetails.crew?.filter((member: any) => member.job === 'Director') || [];
+                      return {
+                        ...movie,
+                        director: directors.length > 0 ? directors.map((d: any) => d.person.name).join(', ') : null
+                      };
+                    }
+                    return { ...movie, director: null };
+                  } catch (error) {
+                    console.error(`Error fetching director for movie ${movie.id}:`, error);
+                    return { ...movie, director: null };
+                  }
+                })
+              );
+              
+              // Mevcut movies state'ini güncelle
+              setLocalMovies(prev => {
+                const updated = [...prev];
+                moviesWithDirectors.forEach(movieWithDirector => {
+                  const index = updated.findIndex(m => m.id === movieWithDirector.id);
+                  if (index !== -1) {
+                    updated[index] = movieWithDirector;
+                  }
+                });
+                return updated;
+              });
+              
+              // Batch'ler arasında kısa bir bekleme
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+            } catch (error) {
+              console.error('Batch director fetch error:', error);
+            }
+          }
         }
       } catch (error) {
         console.error('Local movies fetch error:', error);
@@ -231,18 +301,35 @@ export default function SearchPage() {
     if (localMovies.length === 0) return [];
 
     // Yerel filmleri uygun formata dönüştür
-    let filtered = localMovies.map(movie => ({
-      id: movie.id,
-      title: movie.title,
-      year: movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : 'Bilinmiyor',
-      poster: movie.posterPath ? (movie.posterPath.startsWith('http') ? movie.posterPath : `https://image.tmdb.org/t/p/w500${movie.posterPath}`) : 'https://via.placeholder.com/200x300/f3f4f6/9ca3af?text=Film+Posteri',
-      rating: movie.votes && movie.votes.length > 0 
-        ? Number((movie.votes.reduce((sum: number, vote: any) => sum + (Number(vote.value) || 0), 0) / movie.votes.length).toFixed(1))
-        : 0,
-      genres: movie.categories ? movie.categories.map((cat: any) => cat.category?.name || 'Bilinmiyor') : [],
-      director: 'Bilinmiyor', // Local movies'de director bilgisi yok
-      overview: movie.overview || '' // Arama için overview da dahil edilebilir
-    }));
+    let filtered = localMovies.map(movie => {
+      // Movies sayfasındaki gibi direkt voteAverage kullan
+      const movieRating = movie.localVoteAverage || movie.voteAverage || 0;
+      
+      const movieGenres = movie.genres ? movie.genres.map((g: any) => g.genre?.name || 'Bilinmiyor') : [];
+      
+      // Debug için log
+      if (movie.id === localMovies[0]?.id) {
+        console.log('Movie debug:', {
+          title: movie.title,
+          localVoteAverage: movie.localVoteAverage,
+          voteAverage: movie.voteAverage,
+          rating: movieRating,
+          genres: movieGenres,
+          rawGenres: movie.genres
+        });
+      }
+      
+      return {
+        id: movie.id,
+        title: movie.title,
+        year: movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : 'Bilinmiyor',
+        poster: movie.posterPath ? (movie.posterPath.startsWith('http') ? movie.posterPath : `https://image.tmdb.org/t/p/w500${movie.posterPath}`) : 'https://via.placeholder.com/200x300/f3f4f6/9ca3af?text=Film+Posteri',
+        rating: movieRating,
+        genres: movieGenres,
+        director: movie.director || null,
+        overview: movie.overview || ''
+      };
+    });
 
     // Arama filtresi - film adı, overview veya genre'de ara
     if (debouncedQuery.trim()) {
@@ -256,9 +343,18 @@ export default function SearchPage() {
 
     // Kategori filtresi
     if (selectedCategories.length > 0) {
-      filtered = filtered.filter(movie =>
-        movie.genres.some((genre: string) => selectedCategories.includes(genre))
-      );
+      console.log('Filter debug:', {
+        selectedCategories,
+        availableGenres: [...new Set(filtered.flatMap(m => m.genres))],
+        beforeFilterCount: filtered.length
+      });
+      
+      filtered = filtered.filter(movie => {
+        const hasMatchingGenre = movie.genres.some((genre: string) => selectedCategories.includes(genre));
+        return hasMatchingGenre;
+      });
+      
+      console.log('After category filter:', filtered.length);
     }
 
     // Yıl filtresi
@@ -266,14 +362,6 @@ export default function SearchPage() {
       filtered = filtered.filter(movie => {
         const movieYear = Number(movie.year);
         return !isNaN(movieYear) && selectedYears.includes(movieYear);
-      });
-    }
-
-    // Rating filtresi
-    if (minRating > 0) {
-      filtered = filtered.filter(movie => {
-        const movieRating = Number(movie.rating);
-        return !isNaN(movieRating) && movieRating >= minRating;
       });
     }
 
@@ -300,7 +388,7 @@ export default function SearchPage() {
     });
 
     return filtered;
-  }, [debouncedQuery, localMovies, selectedCategories, selectedYears, minRating, sortBy]);
+  }, [debouncedQuery, localMovies, selectedCategories, selectedYears, sortBy]);
 
   const handleCategoryToggle = (category: string) => {
     setSelectedCategories(prev =>
@@ -313,11 +401,10 @@ export default function SearchPage() {
   const clearAllFilters = () => {
     setSelectedCategories([]);
     setSelectedYears([]);
-    setMinRating(0);
     setSearchQuery('');
   };
 
-  const activeFiltersCount = selectedCategories.length + selectedYears.length + (minRating > 0 ? 1 : 0);
+  const activeFiltersCount = selectedCategories.length + selectedYears.length;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -354,7 +441,7 @@ export default function SearchPage() {
             {/* Quick Search Suggestions - Updated */}
             <div className="flex flex-wrap gap-2 mt-4">
               <span className="text-sm text-gray-600 mr-2">Popüler aramalar:</span>
-              {['Aksiyon', 'Drama', 'Komedi', 'Korku'].map((suggestion) => (
+              {['Aksiyon', 'Drama', 'Komedi', 'Korku', 'Gerilim', 'Romantik', 'Bilim Kurgu', 'Fantastik', 'Animasyon', 'Tarih', 'Belgesel', 'Müzikal'].map((suggestion) => (
                 <button
                   key={suggestion}
                   onClick={() => {
@@ -500,44 +587,6 @@ export default function SearchPage() {
               )}
             </div>
 
-            {/* Rating Filter */}
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Star className="w-4 h-4" />
-                Minimum Puan
-              </h3>
-              <div className="space-y-2">
-                {[9, 8, 7, 6, 5].map((rating) => (
-                  <label
-                    key={rating}
-                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg"
-                  >
-                    <input
-                      type="radio"
-                      name="rating"
-                      checked={minRating === rating}
-                      onChange={() => setMinRating(rating)}
-                      className="w-4 h-4 text-primary border-gray-300 focus:ring-primary/20"
-                    />
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm text-gray-700">{rating}+ ve üzeri</span>
-                    </div>
-                  </label>
-                ))}
-                
-                <label className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-lg">
-                  <input
-                    type="radio"
-                    name="rating"
-                    checked={minRating === 0}
-                    onChange={() => setMinRating(0)}
-                    className="w-4 h-4 text-primary border-gray-300 focus:ring-primary/20"
-                  />
-                  <span className="text-sm text-gray-700">Tüm puanlar</span>
-                </label>
-              </div>
-            </div>
           </aside>
 
           {/* Results Area */}
@@ -587,32 +636,6 @@ export default function SearchPage() {
                   <option value="title">Alfabetik</option>
                   <option value="popularity">Popülerlik</option>
                 </select>
-
-                {/* View Mode Toggle */}
-                <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={cn(
-                      'p-2 transition-colors',
-                      viewMode === 'grid' 
-                        ? 'bg-primary text-white' 
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
-                    )}
-                  >
-                    <Grid3X3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={cn(
-                      'p-2 transition-colors',
-                      viewMode === 'list' 
-                        ? 'bg-primary text-white' 
-                        : 'bg-white text-gray-600 hover:bg-gray-50'
-                    )}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -644,15 +667,6 @@ export default function SearchPage() {
                       {year} <X className="w-3 h-3 ml-1" />
                     </Badge>
                   ))}
-                  {minRating > 0 && (
-                    <Badge
-                      variant="secondary"
-                      className="cursor-pointer bg-blue-100 text-blue-800"
-                      onClick={() => setMinRating(0)}
-                    >
-                      {minRating}+ puan <X className="w-3 h-3 ml-1" />
-                    </Badge>
-                  )}
                 </div>
               </div>
             )}
@@ -668,45 +682,36 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* Results Grid/List */}
+            {/* Results Grid */}
             {!isLoading && filteredMovies.length > 0 ? (
-              <div className={cn(
-                viewMode === 'grid' 
-                  ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                  : 'space-y-4'
-              )}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredMovies.map((movie) => (
                   <div
                     key={movie.id}
-                    className={cn(
-                      'bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer',
-                      viewMode === 'list' && 'flex gap-4 p-4'
-                    )}
+                    className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => router.push(`/movies/${movie.id}`)}
                   >
                     <img
                       src={movie.poster}
                       alt={movie.title}
-                      className={cn(
-                        'object-cover bg-gray-100',
-                        viewMode === 'grid' 
-                          ? 'w-full h-64' 
-                          : 'w-20 h-28 rounded-lg flex-shrink-0'
-                      )}
+                      className="w-full h-64 object-cover bg-gray-100"
                       onError={(e) => {
                         const img = e.target as HTMLImageElement;
                         img.src = 'https://via.placeholder.com/200x300/f3f4f6/9ca3af?text=Film+Posteri';
                       }}
                     />
-                    <div className={cn(
-                      viewMode === 'grid' ? 'p-4' : 'flex-1'
-                    )}>
+                    <div className="p-4">
                       <h3 className="font-semibold text-gray-900 mb-1">{movie.title}</h3>
-                      <p className="text-gray-600 text-sm mb-2">{movie.year || 'Bilinmiyor'} • {movie.director}</p>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                        <span className="text-sm font-medium">{movie.rating || 0}</span>
-                      </div>
+                      <p className="text-gray-600 text-sm mb-2">
+                        {movie.year || 'Bilinmiyor'}
+                        {movie.director && (
+                          <>
+                            {' • '}
+                            <span className="text-gray-700">{movie.director}</span>
+                          </>
+                        )}
+                      </p>
+                      
                       <div className="flex flex-wrap gap-1">
                         {movie.genres.map((genre: string) => (
                           <Badge key={genre} variant="secondary" className="text-xs">

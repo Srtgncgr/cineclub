@@ -11,7 +11,6 @@ import SearchInput, { useSearchInput } from '@/components/ui/search-input';
 import { 
   Film, 
   Search, 
-  Bell, 
   User, 
   Menu, 
   X, 
@@ -29,10 +28,12 @@ interface HeaderProps {
 
 export const Header = React.forwardRef<HTMLElement, HeaderProps>(
   ({ className }, ref) => {
-    const { data: session, status } = useSession();
+    const { data: session, status, update } = useSession();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
     const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
     const [mounted, setMounted] = React.useState(false);
+    const [avatarKey, setAvatarKey] = React.useState(0);
+    const [userDisplayName, setUserDisplayName] = React.useState<string | null>(null);
     const router = useRouter();
 
     // Search functionality
@@ -47,6 +48,48 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     React.useEffect(() => {
       setMounted(true);
     }, []);
+
+    // Kullanıcı adını çek
+    React.useEffect(() => {
+      const fetchUserDisplayName = async () => {
+        if (session?.user?.id) {
+          try {
+            const response = await fetch(`/api/users/${session.user.id}`);
+            const data = await response.json();
+            if (data.success && data.user) {
+              setUserDisplayName(data.user.displayName || data.user.username || session.user.name);
+            }
+          } catch (error) {
+            console.error('Kullanıcı adı çekme hatası:', error);
+          }
+        }
+      };
+
+      fetchUserDisplayName();
+    }, [session?.user?.id]);
+
+    // Profil güncellemelerini dinle
+    React.useEffect(() => {
+      const handleStorageChange = (e: StorageEvent) => {
+        if (e.key === 'profile-updated') {
+          setAvatarKey(prev => prev + 1);
+          // Kullanıcı adını yeniden çek
+          if (session?.user?.id) {
+            fetch(`/api/users/${session.user.id}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data.success && data.user) {
+                  setUserDisplayName(data.user.displayName || data.user.username || session.user.name);
+                }
+              })
+              .catch(console.error);
+          }
+        }
+      };
+
+      window.addEventListener('storage', handleStorageChange);
+      return () => window.removeEventListener('storage', handleStorageChange);
+    }, [session?.user?.id, session?.user?.name]);
 
     // Handle search
     const handleSearch = (query: string) => {
@@ -65,7 +108,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const navigationItems = [
       { label: 'Ana Sayfa', href: '/', icon: Film },
       { label: 'Filmler', href: '/movies', icon: Star },
-      { label: 'Mesajlar', href: '/messages', icon: MessageCircle, badge: 3 },
+      { label: 'Mesajlar', href: '/messages', icon: MessageCircle},
     ];
 
     // Search suggestions for header
@@ -74,6 +117,7 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
       'Forrest Gump', 'Matrix', 'Interstellar', 'Christopher Nolan', 'Aksiyon'
     ];
 
+        if (!mounted) {
     return (
       <header 
         ref={ref}
@@ -83,6 +127,52 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
         )}
       >
         <div className="container mx-auto px-4 lg:px-6">
+          <div className="flex h-20 items-center gap-4">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 min-w-fit hover:opacity-80 transition-opacity duration-200">
+              <div className="p-2.5 lg:p-3 bg-primary rounded-xl shadow-sm">
+                <Film className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+              </div>
+              <span className="text-xl lg:text-2xl font-bold text-gray-900 hidden sm:block">CineClub</span>
+              <span className="text-lg font-bold text-gray-900 sm:hidden">CC</span>
+            </Link>
+            
+            {/* Desktop Navigation - Compact */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {navigationItems.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 relative whitespace-nowrap"
+                >
+                  <item.icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="hidden xl:block">{item.label}</span>
+                  <span className="xl:hidden">{item.label.split(' ')[0]}</span>
+                </a>
+              ))}
+            </nav>
+            
+            {/* Right Side - Loading skeleton */}
+            <div className="flex-1"></div>
+            <div className="flex items-center gap-2 min-w-fit">
+              <div className="w-32 h-8 bg-gray-200 rounded-lg animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  return (
+    <header 
+      ref={ref}
+      className={cn(
+        'sticky top-0 z-50 w-full border-b border-gray-200 bg-white/95 backdrop-blur-xl shadow-sm',
+        className
+      )}
+      suppressHydrationWarning
+    >
+      <div className="container mx-auto px-4 lg:px-6">
           <div className="flex h-20 items-center gap-4">
             
             {/* Logo */}
@@ -95,27 +185,24 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
             </Link>
 
             {/* Desktop Navigation - Compact */}
-            <nav className="hidden lg:flex items-center gap-1">
-              {navigationItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 relative whitespace-nowrap"
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="hidden xl:block">{item.label}</span>
-                  <span className="xl:hidden">{item.label.split(' ')[0]}</span>
-                  {item.badge && (
-                    <span className="px-1.5 py-0.5 bg-primary text-white text-xs rounded-full font-semibold">
-                      {item.badge}
-                    </span>
-                  )}
-                </a>
-              ))}
-            </nav>
+            {mounted && (
+              <nav className="hidden lg:flex items-center gap-1">
+                {navigationItems.map((item) => (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200 relative whitespace-nowrap"
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="hidden xl:block">{item.label}</span>
+                    <span className="xl:hidden">{item.label.split(' ')[0]}</span>
+                  </a>
+                ))}
+              </nav>
+            )}
 
             {/* Search Bar (Desktop) - More Flexible */}
-            <div className="hidden lg:flex items-center flex-1 min-w-0 mx-4">
+            <div className="flex-1 hidden lg:flex items-center min-w-0 mx-4">
               <div className="w-full max-w-md [&_input]:bg-gray-50 [&_input]:border-gray-200">
                 <SearchInput
                   value={searchQuery}
@@ -142,45 +229,63 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
 
               {isAuthenticated && user ? (
                 <>
-                  {/* Notifications - Compact */}
-                  <div className="relative">
-                    <button className="p-2.5 hover:bg-gray-50 rounded-lg transition-all duration-200 relative">
-                      <Bell className="w-5 h-5 text-gray-600" />
-                      <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></div>
-                    </button>
-                  </div>
-
-                  {/* User Menu - Compact */}
+                  {/* User Menu - Enhanced */}
                   <div className="relative">
                     <button
                       onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                      className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-xl transition-all duration-200 group"
                     >
                       <Avatar 
+                        key={`header-sm-${avatarKey}`}
                         src={user.image ?? undefined}
-                        alt={user.name ?? 'User'}
+                        alt={mounted ? (userDisplayName || user.name || 'User') : (user.name || 'User')}
                         size="sm"
-                        showStatus
+                        showStatus={mounted}
                         status="online"
                       />
-                      <span className="hidden xl:block text-sm text-gray-900 font-medium max-w-[100px] truncate">
-                        {user.name}
-                      </span>
+                      {mounted && (
+                        <div className="hidden sm:flex flex-col items-start min-w-0">
+                          <span className="text-sm font-semibold text-gray-900 truncate max-w-[120px] group-hover:text-gray-700 transition-colors duration-200">
+                            {userDisplayName ? 
+                              (userDisplayName.split(' ')[0] || userDisplayName) : 
+                              (user.name?.split(' ')[0] || 'Kullanıcı')
+                            }
+                          </span>
+                          <span className="text-xs text-gray-500 group-hover:text-gray-600 transition-colors duration-200">
+                            Hoş geldin!
+                          </span>
+                        </div>
+                      )}
+                      <svg 
+                        className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-all duration-200 hidden sm:block" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
 
                     {/* User Dropdown */}
                     {mounted && isUserMenuOpen && (
-                      <div className="absolute right-0 top-full mt-3 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                        <div className="px-4 py-3 border-b border-gray-200">
+                      <div className="absolute right-0 top-full mt-3 w-64 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
+                        <div className="px-4 py-4 border-b border-gray-100">
                           <div className="flex items-center gap-3">
                             <Avatar 
+                              key={`header-md-${avatarKey}`}
                               src={user.image ?? undefined}
-                              alt={user.name ?? 'User'}
+                              alt={mounted ? (userDisplayName || user.name || 'User') : (user.name || 'User')}
                               size="md"
                             />
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">{user.name}</p>
-                              <p className="text-xs text-gray-500">{user.email}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-gray-900 truncate">
+                                {mounted ? (userDisplayName || user.name || 'Kullanıcı') : (user.name || 'Kullanıcı')}
+                              </p>
+                              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-green-600 font-medium">Çevrimiçi</span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -260,11 +365,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   >
                     <item.icon className="w-5 h-5" />
                     <span>{item.label}</span>
-                    {item.badge && (
-                      <span className="ml-auto px-2 py-1 bg-primary text-white text-xs rounded-full font-semibold">
-                        {item.badge}
-                      </span>
-                    )}
                   </a>
                 ))}
                 

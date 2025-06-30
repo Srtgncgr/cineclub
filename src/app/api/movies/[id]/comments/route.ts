@@ -186,9 +186,9 @@ export async function POST(
       );
     }
 
-    if (rating && (rating < 1 || rating > 5 || !Number.isInteger(rating))) {
+    if (rating !== undefined && (rating < 0 || rating > 5 || !Number.isInteger(rating))) {
       return NextResponse.json(
-        { error: 'Geçerli bir puan giriniz (1-5 arası tam sayı)' },
+        { error: 'Geçerli bir puan giriniz (0-5 arası tam sayı)' },
         { status: 400 }
       );
     }
@@ -231,13 +231,11 @@ export async function POST(
       }
     }
 
-    // Yorum oluştur
-    const comment = await prisma.comment.create({
-      data: {
-        content: content.trim(),
-        rating: parentId ? null : rating || null, // Reply'larda rating yok
-        movieId: resolvedParams.id,
+    // Mevcut yorum/rating kontrolü
+    const existingComment = await prisma.comment.findFirst({
+      where: {
         userId: user.id,
+        movieId: resolvedParams.id,
         parentId: parentId || null
       },
       include: {
@@ -252,9 +250,55 @@ export async function POST(
       }
     });
 
+    let comment;
+
+    if (existingComment) {
+      // Mevcut yorumu güncelle
+      comment = await prisma.comment.update({
+        where: { id: existingComment.id },
+        data: {
+          content: content.trim(),
+          // Rating sadece belirtilmişse güncelle, yoksa mevcut rating'i koru
+          rating: parentId ? existingComment.rating : (rating !== undefined ? rating : existingComment.rating),
+          updatedAt: new Date()
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true,
+              avatar: true
+            }
+          }
+        }
+      });
+    } else {
+      // Yeni yorum oluştur
+      comment = await prisma.comment.create({
+        data: {
+          content: content.trim(),
+          rating: parentId ? 0 : rating || 0, // Reply'larda rating 0
+          movieId: resolvedParams.id,
+          userId: user.id,
+          parentId: parentId || null
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              displayName: true,
+              email: true,
+              avatar: true
+            }
+          }
+        }
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Yorumunuz başarıyla eklendi',
+      message: existingComment ? 'Yorumunuz başarıyla güncellendi' : 'Yorumunuz başarıyla eklendi',
       comment: {
         id: comment.id,
         content: comment.content,

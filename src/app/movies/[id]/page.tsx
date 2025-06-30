@@ -370,6 +370,9 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   }
 
   const directors = movie.crew.filter(member => member.job === 'Director');
+  const producers = movie.crew.filter(member => member.job === 'Producer' || member.job === 'Executive Producer');
+  const writers = movie.crew.filter(member => member.job === 'Writer' || member.job === 'Screenplay');
+  const cinematographers = movie.crew.filter(member => member.job === 'Cinematography');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -469,6 +472,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
             <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
               <CommentList 
                 comments={comments}
+                movieId={movie.id}
                 onAddComment={handleAddComment}
                 onReplyToComment={handleReplyToComment}
                 onEditComment={handleEditComment}
@@ -488,36 +492,96 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
             {/* Film Detayları */}
             <div className="bg-white p-6 rounded-lg shadow-sm">
               <h3 className="text-xl font-bold border-b pb-2 mb-4">Film Detayları</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="font-semibold">Orijinal İsim</span>
-                  <span className="text-gray-600 text-right">{movie.originalTitle}</span>
-                      </div>
-                {movie.releaseDate && 
-                  <div className="flex justify-between">
-                    <span className="font-semibold">Vizyon Tarihi</span>
-                    <span className="text-gray-600">{new Date(movie.releaseDate).toLocaleDateString('tr-TR')}</span>
-                      </div>
-                }
-                <div className="flex justify-between">
-                  <span className="font-semibold">Popülerlik</span>
-                  <span className="text-gray-600">{movie.popularity.toFixed(2)}</span>
-                    </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-1">
+                  <span className="text-sm font-semibold text-gray-800">Orijinal İsim</span>
+                  <span className="text-sm text-gray-600 leading-relaxed">{movie.originalTitle}</span>
+                </div>
+                
+                {movie.releaseDate && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">Vizyon Tarihi</span>
+                    <span className="text-sm text-gray-600">{new Date(movie.releaseDate).toLocaleDateString('tr-TR')}</span>
+                  </div>
+                )}
+               
                 {movie.imdbId && (
-                  <div className="flex justify-between">
-                    <span className="font-semibold">IMDB</span>
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">IMDB</span>
                     <a 
                       href={`https://www.imdb.com/title/${movie.imdbId}`} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-sm text-blue-600 hover:underline inline-block"
                     >
                       Sayfasına Git
                     </a>
                   </div>
                 )}
+                
+                {directors.length > 0 && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">Yönetmen</span>
+                    <div className="text-sm text-gray-600 leading-relaxed">
+                      {directors.map((d, index) => (
+                        <span key={d.person.id}>
+                          {d.person.name}
+                          {index < directors.length - 1 && <span className="text-gray-400"> • </span>}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+                
+                {producers.length > 0 && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">Yapımcı</span>
+                    <div className="text-sm text-gray-600 leading-relaxed">
+                      {producers.slice(0, 3).map((p, index) => (
+                        <span key={p.person.id}>
+                          {p.person.name}
+                          {index < Math.min(producers.length, 3) - 1 && <span className="text-gray-400"> • </span>}
+                        </span>
+                      ))}
+                      {producers.length > 3 && (
+                        <span className="text-gray-500 text-xs"> ve {producers.length - 3} kişi daha</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {writers.length > 0 && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">Senarist</span>
+                    <div className="text-sm text-gray-600 leading-relaxed">
+                      {writers.slice(0, 3).map((w, index) => (
+                        <span key={w.person.id}>
+                          {w.person.name}
+                          {index < Math.min(writers.length, 3) - 1 && <span className="text-gray-400"> • </span>}
+                        </span>
+                      ))}
+                      {writers.length > 3 && (
+                        <span className="text-gray-500 text-xs"> ve {writers.length - 3} kişi daha</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {cinematographers.length > 0 && (
+                  <div className="grid grid-cols-1 gap-1">
+                    <span className="text-sm font-semibold text-gray-800">Görüntü Yönetmeni</span>
+                    <div className="text-sm text-gray-600 leading-relaxed">
+                      {cinematographers.map((c, index) => (
+                        <span key={c.person.id}>
+                          {c.person.name}
+                          {index < cinematographers.length - 1 && <span className="text-gray-400"> • </span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Oyuncular */}
             {movie.cast.length > 0 && (

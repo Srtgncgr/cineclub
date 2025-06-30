@@ -5,56 +5,59 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   try {
-    // Bu hafta seçilen filmleri getir (şimdilik mock data döndürelim)
-    // Gerçekte WeeklyList tablosundan gelecek
-    const weeklyMovies = [
-      {
-        id: 1,
-        title: "Parasite",
-        year: 2019,
-        rating: 8.6,
-        votes: 2456,
-        poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-        genres: ["Thriller", "Drama", "Comedy"],
-        director: "Bong Joon-ho",
-        description: "Oscar ödüllü güney kore yapımı çarpıcı sosyal drama",
-        weeklyTheme: "Uluslararası Sinema",
-        position: 1,
-        votes_this_week: 1847
+    // Aktif durumda olan haftalık listeyi bul
+    const activeWeeklyList = await prisma.weeklyList.findFirst({
+      where: {
+        status: 'ACTIVE'
       },
-      {
-        id: 2,
-        title: "Spirited Away",
-        year: 2001,
-        rating: 9.3,
-        votes: 1789,
-        poster: "https://m.media-amazon.com/images/M/MV5BMjlmZmI5MDctNDE2YS00YWE0LWE5ZWItZDBhYWQ0NTcxNWRhXkEyXkFqcGdeQXVyMTMxODk2OTU@._V1_SX300.jpg",
-        genres: ["Animation", "Adventure", "Family"],
-        director: "Hayao Miyazaki",
-        description: "Studio Ghibli'nin büyülü dünyasında unutulmaz bir yolculuk",
-        weeklyTheme: "Anime Klasikleri",
-        position: 2,
-        votes_this_week: 1653
+      include: {
+        movies: {
+          include: {
+            movie: {
+              include: {
+                genres: {
+                  include: {
+                    genre: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: {
+            position: 'asc'
+          }
+        }
       },
-      {
-        id: 3,
-        title: "There Will Be Blood",
-        year: 2007,
-        rating: 8.2,
-        votes: 1234,
-        poster: "https://m.media-amazon.com/images/M/MV5BMjAxODQ4MDU5NV5BMl5BanBnXkFtZTcwMDU4MjU1MQ@@._V1_SX300.jpg",
-        genres: ["Drama"],
-        director: "Paul Thomas Anderson",
-        description: "Daniel Day-Lewis'in muhteşem performansıyla epik drama",
-        weeklyTheme: "Karakter Odaklı Dramalar",
-        position: 3,
-        votes_this_week: 982
+      orderBy: {
+        startDate: 'desc'
       }
-    ];
+    });
+
+    // Eğer aktif liste yoksa boş dizi döndür
+    if (!activeWeeklyList || activeWeeklyList.movies.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Ana sayfa için uygun formata dönüştür
+    const weeklyMovies = activeWeeklyList.movies.map((item: any, index: number) => ({
+      id: item.movie.id,
+      title: item.movie.title,
+      year: item.movie.year || (item.movie.releaseDate ? new Date(item.movie.releaseDate).getFullYear() : 0),
+      rating: item.movie.voteAverage || 0,
+      votes: item.movie.voteCount || 0,
+      poster: item.movie.posterPath ? `https://image.tmdb.org/t/p/w500${item.movie.posterPath}` : '/placeholder.svg',
+      genres: item.movie.genres.map((g: any) => g.genre.name),
+      director: '', // Crew tablosundan alınabilir gerekirse
+      description: item.movie.overview || '',
+      weeklyTheme: activeWeeklyList.title,
+      position: item.position || index + 1
+    }));
 
     return NextResponse.json(weeklyMovies);
   } catch (error) {
     console.error('Error fetching weekly movies:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    
+    // Hata durumunda boş dizi döndür
+    return NextResponse.json([]);
   }
 } 

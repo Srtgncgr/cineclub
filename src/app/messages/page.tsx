@@ -9,14 +9,9 @@ import {
   Plus,
   MessageCircle,
   MoreHorizontal,
-  Circle,
   Check,
   CheckCheck,
   Pin,
-  Archive,
-  Trash2,
-  Filter,
-  Users,
   Settings,
   AlertTriangle
 } from 'lucide-react';
@@ -49,7 +44,7 @@ interface Conversation {
 export default function MessagesPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFilter, setSelectedFilter] = useState('all');
+
   const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -114,17 +109,7 @@ export default function MessagesPage() {
                          conv.user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          conv.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase());
     
-    if (!matchesSearch) return false;
-    
-    switch (selectedFilter) {
-      case 'unread':
-        return conv.unreadCount > 0;
-      case 'pinned':
-        return conv.isPinned;
-      case 'all':
-      default:
-        return !conv.isArchived;
-    }
+    return matchesSearch && !conv.isArchived;
   });
 
   // Sıralama: pinned first, then by timestamp
@@ -190,10 +175,6 @@ export default function MessagesPage() {
           </div>
           
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm">
-              <Settings className="w-4 h-4 mr-2" />
-              Ayarlar
-            </Button>
             <Button variant="primary" size="sm" onClick={() => router.push('/messages/new')}>
               <Plus className="w-4 h-4 mr-2" />
               Yeni Mesaj
@@ -215,32 +196,7 @@ export default function MessagesPage() {
               />
             </div>
 
-            <div className="flex gap-2">
-              {[
-                { id: 'all', label: 'Tümü', count: conversations.length },
-                { id: 'unread', label: 'Okunmamış', count: conversations.filter(c => c.unreadCount > 0).length },
-                { id: 'pinned', label: 'Sabitlenmiş', count: conversations.filter(c => c.isPinned).length }
-              ].map((filter) => (
-                <Button
-                  key={filter.id}
-                  variant={selectedFilter === filter.id ? 'primary' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedFilter(filter.id)}
-                  className="whitespace-nowrap"
-                >
-                  {filter.label}
-                  {filter.count > 0 && (
-                    <span className={`ml-2 px-1.5 py-0.5 rounded-full text-xs ${
-                      selectedFilter === filter.id 
-                        ? 'bg-white/20 text-white' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {filter.count}
-                    </span>
-                  )}
-                </Button>
-              ))}
-            </div>
+
           </div>
         </div>
 
@@ -382,45 +338,7 @@ export default function MessagesPage() {
           </div>
         )}
 
-        {/* Online Users Quick Access */}
-        {onlineUsers > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Circle className="w-3 h-3 text-green-500 fill-green-500" />
-                Çevrimiçi ({onlineUsers})
-              </h3>
-              <Button variant="ghost" size="sm">
-                <Users className="w-4 h-4 mr-2" />
-                Tümünü Gör
-              </Button>
-            </div>
-            
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {conversations
-                .filter(conv => conv.user.isOnline)
-                .slice(0, 8)
-                .map((conv) => (
-                  <div
-                    key={conv.id}
-                    onClick={() => handleConversationClick(conv.user.id)}
-                    className="flex flex-col items-center gap-2 p-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors min-w-0"
-                  >
-                    <Avatar
-                      src={conv.user.avatar}
-                      alt={conv.user.name}
-                      size="sm"
-                      showStatus
-                      status="online"
-                    />
-                    <span className="text-xs text-gray-700 text-center truncate w-16">
-                      {conv.user.name.split(' ')[0]}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   );

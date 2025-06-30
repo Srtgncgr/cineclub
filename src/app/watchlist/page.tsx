@@ -8,14 +8,16 @@ import { Badge } from '@/components/ui/badge';
 import { 
   Plus, 
   Star, 
-  Calendar,
-  Clock,
+  Calendar, 
+  Clock, 
+  Filter,
+  Search,
+  X,
+  Film,
   Eye,
   EyeOff,
   Trash2,
-  Grid3X3,
-  List,
-  Filter
+  Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,8 +37,8 @@ interface WatchlistItem {
         name: string;
       }
     }>;
-    votes: Array<{
-      value: number;
+    comments: Array<{
+      rating: number;
     }>;
   };
 }
@@ -47,8 +49,7 @@ export default function WatchlistPage() {
   
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [filter, setFilter] = useState<'all' | 'unwatched' | 'watched'>('all');
+  const [filter, setFilter] = useState<'all' | 'watched' | 'unwatched'>('all');
 
   // Auth kontrolü
   useEffect(() => {
@@ -67,12 +68,23 @@ export default function WatchlistPage() {
   const fetchWatchlist = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/watchlist');
+      const response = await fetch('/api/watchlist', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setWatchlist(data);
       } else {
-        console.error('Failed to fetch watchlist');
+        const errorText = await response.text();
+        console.error('Failed to fetch watchlist:', response.status, errorText);
+        
+        if (response.status === 401) {
+          router.push('/login');
+        }
       }
     } catch (error) {
       console.error('Watchlist fetch error:', error);
@@ -131,11 +143,11 @@ export default function WatchlistPage() {
     return `https://image.tmdb.org/t/p/w500${posterPath}`;
   };
 
-  const getMovieRating = (votes: Array<{ value: number }>) => {
-    if (!votes || votes.length === 0) return 0;
-    const average = votes.reduce((sum, vote) => sum + (vote.value || 0), 0) / votes.length;
-    const result = Number(average.toFixed(1));
-    return isNaN(result) ? 0 : result;
+  const getUserRating = (comments: Array<{ rating: number }>) => {
+    if (!comments || comments.length === 0) return 0;
+    // Kullanıcının kendi puanını al (sadece 1 tane olmalı)
+    const userRating = comments[0]?.rating || 0;
+    return isNaN(userRating) ? 0 : userRating;
   };
 
   const getMovieYear = (releaseDate?: string) => {
@@ -149,7 +161,10 @@ export default function WatchlistPage() {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return 'Bilinmiyor';
-      return date.toLocaleDateString('tr-TR');
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}.${month}.${year}`;
     } catch {
       return 'Bilinmiyor';
     }
@@ -244,45 +259,21 @@ export default function WatchlistPage() {
           </div>
 
           {/* View Mode */}
-          <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setViewMode('grid')}
-              className={cn(
-                'p-2 transition-colors',
-                viewMode === 'grid' 
-                  ? 'bg-primary text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              )}
-            >
-              <Grid3X3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={cn(
-                'p-2 transition-colors',
-                viewMode === 'list' 
-                  ? 'bg-primary text-white' 
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              )}
-            >
-              <List className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-4">
+            <p className="text-gray-600">
+              <span className="font-semibold text-gray-900">{filteredWatchlist.length}</span> film
+            </p>
           </div>
         </div>
 
-        {/* Watchlist Grid/List */}
+        {/* Watchlist Grid */}
         {filteredWatchlist.length > 0 ? (
-          <div className={cn(
-            viewMode === 'grid' 
-              ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-              : 'space-y-4'
-          )}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredWatchlist.map((item) => (
               <div
                 key={item.id}
                 className={cn(
                   'bg-white rounded-xl overflow-hidden border shadow-sm hover:shadow-md transition-all duration-200',
-                  viewMode === 'list' && 'flex gap-4 p-4',
                   item.watched 
                     ? 'border-gray-300 bg-gray-50/30' 
                     : 'border-gray-200'
@@ -293,10 +284,7 @@ export default function WatchlistPage() {
                     src={getPosterUrl(item.movie.posterPath)}
                     alt={item.movie.title}
                     className={cn(
-                      'object-cover bg-gray-100 cursor-pointer transition-all duration-200',
-                      viewMode === 'grid' 
-                        ? 'w-full h-64' 
-                        : 'w-20 h-28 rounded-lg flex-shrink-0',
+                      'w-full h-64 object-cover bg-gray-100 cursor-pointer transition-all duration-200',
                       item.watched && 'opacity-60 grayscale'
                     )}
                     onClick={() => router.push(`/movies/${item.movie.id}`)}
@@ -316,10 +304,7 @@ export default function WatchlistPage() {
                   )}
                 </div>
                 
-                <div className={cn(
-                  'flex-1',
-                  viewMode === 'grid' ? 'p-4' : ''
-                )}>
+                <div className="p-4">
                   <h3 
                     className="font-semibold text-gray-900 mb-1 cursor-pointer hover:text-primary"
                     onClick={() => router.push(`/movies/${item.movie.id}`)}
@@ -331,10 +316,12 @@ export default function WatchlistPage() {
                       <span className="text-gray-600 text-sm">
                       {getMovieYear(item.movie.releaseDate)}
                       </span>
-                    <div className="flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{getMovieRating(item.movie.votes || [])}</span>
-                    </div>
+                    {getUserRating(item.movie.comments || []) > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-medium">{getUserRating(item.movie.comments || [])}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex flex-wrap gap-1 mb-3">
