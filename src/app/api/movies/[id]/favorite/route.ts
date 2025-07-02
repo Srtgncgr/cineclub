@@ -1,5 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { NextResponse } from 'next/server';
 
 export async function GET(
   req: Request,
@@ -12,7 +13,7 @@ export async function GET(
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const movieId = resolvedParams.id;
@@ -23,7 +24,7 @@ export async function GET(
     });
 
     if (!movie) {
-      return new Response("Movie not found", { status: 404 });
+      return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
 
     // Kullanıcının bu filmi favorilerde var mı kontrol et
@@ -36,13 +37,13 @@ export async function GET(
       },
     });
 
-    return new Response(JSON.stringify({ 
+    return NextResponse.json({ 
       isFavorite: !!favorite,
       favoriteId: favorite?.id || null,
-    }));
+    });
   } catch (error) {
     console.error('Error checking favorite status:', error);
-    return new Response("Could not check favorite status", { status: 500 });
+    return NextResponse.json({ error: "Could not check favorite status" }, { status: 500 });
   }
 }
 
@@ -57,7 +58,7 @@ export async function POST(
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const movieId = resolvedParams.id;
@@ -68,7 +69,7 @@ export async function POST(
     });
 
     if (!movie) {
-      return new Response("Movie not found", { status: 404 });
+      return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
 
     // Mevcut favori durumunu kontrol et
@@ -97,11 +98,11 @@ export async function POST(
         },
       });
 
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         isFavorite: false,
         favoriteId: null,
         message: "Favorilerden çıkarıldı",
-      }));
+      });
     } else {
       // Favorilere ekle
       const newFavorite = await db.favorite.create({
@@ -121,14 +122,14 @@ export async function POST(
         },
       });
 
-      return new Response(JSON.stringify({ 
+      return NextResponse.json({ 
         isFavorite: true,
         favoriteId: newFavorite.id,
         message: "Favorilere eklendi",
-      }), { status: 201 });
+      }, { status: 201 });
     }
   } catch (error) {
     console.error('Error toggling favorite:', error);
-    return new Response("Could not toggle favorite", { status: 500 });
+    return NextResponse.json({ error: "Could not toggle favorite" }, { status: 500 });
   }
 } 

@@ -652,15 +652,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Development Link */}
-      <div className="fixed bottom-4 right-4 z-40">
-        <a 
-          href="/test-css" 
-          className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-lg"
-        >
-          🎨 UI Test
-        </a>
-      </div>
+      
 
     </div>
   );

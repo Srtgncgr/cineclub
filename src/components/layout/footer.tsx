@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Film, Heart, Github, Twitter, Instagram, Mail } from 'lucide-react';
@@ -14,8 +16,8 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
       platform: [
         { label: 'Ana Sayfa', href: '/' },
         { label: 'Filmler', href: '/movies' },
-        { label: 'Topluluk', href: '/community' },
-        { label: 'Haftalık Liste', href: '/weekly' },
+        { label: 'Favoriler', href: '/movies/favorites' },
+        { label: 'İzleme Listesi', href: '/watchlist' },
       ],
       support: [
         { label: 'Yardım Merkezi', href: '/help' },
@@ -30,10 +32,10 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
         { label: 'KVKK', href: '/kvkk' },
       ],
       social: [
-        { label: 'Twitter', href: 'https://twitter.com/cineclub', icon: Twitter },
-        { label: 'Instagram', href: 'https://instagram.com/cineclub', icon: Instagram },
-        { label: 'GitHub', href: 'https://github.com/cineclub', icon: Github },
-        { label: 'E-posta', href: 'mailto:info@cineclub.com', icon: Mail },
+        { label: 'Twitter', href: '#', icon: Twitter },
+        { label: 'Instagram', href: '#', icon: Instagram },
+        { label: 'GitHub', href: 'https://github.com/Srtgncgr/cineclub', icon: Github },
+        { label: 'E-posta', href: '#', icon: Mail },
       ]
     };
 
@@ -74,7 +76,7 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
               <h3 className="text-lg font-bold text-gray-900 mb-6">Platform</h3>
               <ul className="space-y-4">
                 {footerLinks.platform.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <a 
                       href={link.href}
                       className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
@@ -91,7 +93,7 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
               <h3 className="text-lg font-bold text-gray-900 mb-6">Destek</h3>
               <ul className="space-y-4">
                 {footerLinks.support.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <a 
                       href={link.href}
                       className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
@@ -108,7 +110,7 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
               <h3 className="text-lg font-bold text-gray-900 mb-6">Yasal</h3>
               <ul className="space-y-4">
                 {footerLinks.legal.map((link) => (
-                  <li key={link.href}>
+                  <li key={link.label}>
                     <a 
                       href={link.href}
                       className="text-gray-600 hover:text-primary transition-colors duration-200 font-medium"
@@ -132,11 +134,12 @@ export const Footer = React.forwardRef<HTMLElement, FooterProps>(
                 <div className="flex items-center gap-3">
                   {footerLinks.social.map((social) => (
                     <a
-                      key={social.href}
+                      key={social.label}
                       href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-primary hover:bg-primary/5 transition-all duration-200 group"
+                      target={social.href !== '#' ? "_blank" : undefined}
+                      rel={social.href !== '#' ? "noopener noreferrer" : undefined}
+                      onClick={social.href === '#' ? (e) => e.preventDefault() : undefined}
+                      className="p-3 rounded-xl bg-gray-50 border border-gray-200 hover:border-primary hover:bg-primary/5 transition-all duration-200 group cursor-pointer"
                       aria-label={social.label}
                     >
                       <social.icon className="w-5 h-5 text-gray-600 group-hover:text-primary transition-colors duration-200" />

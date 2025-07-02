@@ -21,7 +21,6 @@ export default function NotFound() {
     { label: 'Ana Sayfa', href: '/', icon: Home, description: 'Ana sayfaya dön' },
     { label: 'Filmler', href: '/movies', icon: Film, description: 'Film kataloğunu keşfet' },
     { label: 'Arama', href: '/search', icon: Search, description: 'İstediğin filmi ara' },
-    { label: 'Topluluk', href: '/community', icon: Users, description: 'Diğer kullanıcılarla etkileşim' }
   ];
 
   return (
@@ -94,7 +93,7 @@ export default function NotFound() {
               Size yardımcı olabilecek bağlantılar:
             </h3>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-4xl mx-auto">
               {quickLinks.map((link) => (
                 <Link 
                   key={link.href}

@@ -90,11 +90,25 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [fixedImdbRating, setFixedImdbRating] = useState<{ average: number; count: number } | null>(null);
 
   useEffect(() => {
-    fetchMovieDetails();
-    fetchComments();
-    checkWatchlistStatus();
-    checkFavoriteStatus();
-  }, [resolvedParams.id]);
+    // Tüm API çağrılarını paralel olarak yap
+    const loadAllData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchMovieDetails(),
+          fetchComments(),
+          checkWatchlistStatus(),
+          checkFavoriteStatus()
+        ]);
+      } catch (error) {
+        console.error('Error loading page data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadAllData();
+  }, [resolvedParams.id, session]);
 
   // Poster URL'ini formatla
   const formatPosterUrl = (posterPath: string | null | undefined) => {
@@ -140,12 +154,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
     } catch (error) {
       console.error('Error fetching movie:', error);
       notFound();
-    } finally {
-      setLoading(false);
     }
   };
 
   const checkWatchlistStatus = async () => {
+    if (!session?.user) return; // Session yoksa kontrol etme
+    
     try {
       const response = await fetch(`/api/watchlist/${resolvedParams.id}`);
       if (response.ok) {
@@ -159,6 +173,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
   const handleWatchlistToggle = async () => {
     if (isWatchlistLoading) return;
+    
+    // Session kontrolü
+    if (!session?.user) {
+      alert('İzleme listesine eklemek için giriş yapmanız gerekiyor.');
+      return;
+    }
     
     setIsWatchlistLoading(true);
     try {
@@ -179,7 +199,8 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
           setIsInWatchlist(false);
         }
       } else {
-        throw new Error('İzleme listesi güncellenemedi');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'İzleme listesi güncellenemedi');
       }
     } catch (error) {
       console.error('Error toggling watchlist:', error);
@@ -191,6 +212,12 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
 
   const handleFavoriteToggle = async () => {
     if (isFavoriteLoading) return;
+    
+    // Session kontrolü
+    if (!session?.user) {
+      alert('Favorilere eklemek için giriş yapmanız gerekiyor.');
+      return;
+    }
     
     setIsFavoriteLoading(true);
     try {
@@ -205,7 +232,8 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         const data = await response.json();
         setIsFavorite(data.isFavorite);
       } else {
-        throw new Error('Favoriler güncellenemedi');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Favoriler güncellenemedi');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
@@ -343,6 +371,8 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   };
 
   const checkFavoriteStatus = async () => {
+    if (!session?.user) return; // Session yoksa kontrol etme
+    
     try {
       const response = await fetch(`/api/movies/${resolvedParams.id}/favorite`);
       if (response.ok) {

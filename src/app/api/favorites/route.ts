@@ -1,6 +1,7 @@
 import { getAuthSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { NextResponse } from 'next/server';
 
 // Favori ekleme için validation schema
 const AddFavoriteSchema = z.object({
@@ -12,7 +13,7 @@ export async function GET() {
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const favorites = await db.favorite.findMany({
@@ -51,10 +52,10 @@ export async function GET() {
       },
     }));
 
-    return new Response(JSON.stringify(formattedFavorites));
+    return NextResponse.json(formattedFavorites);
   } catch (error) {
     console.error('Error fetching favorites:', error);
-    return new Response("Could not fetch favorites", { status: 500 });
+    return NextResponse.json({ error: "Could not fetch favorites" }, { status: 500 });
   }
 }
 
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
     const session = await getAuthSession();
 
     if (!session?.user) {
-      return new Response("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await req.json();
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     });
 
     if (!movie) {
-      return new Response("Movie not found", { status: 404 });
+      return NextResponse.json({ error: "Movie not found" }, { status: 404 });
     }
 
     // Zaten favorilerde mi kontrol et
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
     });
 
     if (existingFavorite) {
-      return new Response("Movie already in favorites", { status: 409 });
+      return NextResponse.json({ error: "Movie already in favorites" }, { status: 409 });
     }
 
     // Favorilere ekle
@@ -117,12 +118,12 @@ export async function POST(req: Request) {
       },
     });
 
-    return new Response(JSON.stringify(newFavorite), { status: 201 });
+    return NextResponse.json(newFavorite, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return new Response(error.message, { status: 422 });
+      return NextResponse.json({ error: error.message }, { status: 422 });
     }
     console.error('Error adding favorite:', error);
-    return new Response("Could not add favorite", { status: 500 });
+    return NextResponse.json({ error: "Could not add favorite" }, { status: 500 });
   }
 } 

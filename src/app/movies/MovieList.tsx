@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { HeartButton } from '@/components/ui/heart-button';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
 type MovieWithGenres = {
   genres: { genre: { name: string } }[];
@@ -21,9 +22,39 @@ export type MovieListProps = {
 };
 
 export default function MovieList({ movies }: MovieListProps) {
+  const { data: session } = useSession();
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
+  // Kullanıcının favori filmlerini yükle
+  useEffect(() => {
+    const loadUserFavorites = async () => {
+      if (!session?.user) {
+        setFavorites(new Set()); // Session yoksa favorileri temizle
+        return;
+      }
+
+              try {
+          const response = await fetch('/api/favorites');
+          if (response.ok) {
+            const data = await response.json();
+            const favoriteIds = new Set<string>(data.map((fav: any) => fav.movie.id as string));
+            setFavorites(favoriteIds);
+          }
+        } catch (error) {
+        console.error('Error loading user favorites:', error);
+      }
+    };
+
+    loadUserFavorites();
+  }, [session]);
+
   const handleFavoriteToggle = async (movieId: string, isFavorite: boolean) => {
+    // Session kontrolü
+    if (!session?.user) {
+      alert('Favorilere eklemek için giriş yapmanız gerekiyor.');
+      return;
+    }
+
     try {
       const response = await fetch(`/api/movies/${movieId}/favorite`, {
         method: 'POST',
@@ -40,9 +71,13 @@ export default function MovieList({ movies }: MovieListProps) {
             return newSet;
           });
         }
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || 'Favoriler güncellenemedi');
       }
     } catch (error) {
       console.error('Favorite toggle error:', error);
+      alert('Bir hata oluştu. Lütfen tekrar deneyin.');
     }
   };
 
@@ -81,12 +116,16 @@ export default function MovieList({ movies }: MovieListProps) {
 
           {/* Heart Button - Hover'da görünür */}
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <HeartButton
-              isFavorite={favorites.has(movie.id)}
-              variant="default"
-              size="md"
-              onToggle={(isFavorite) => handleFavoriteToggle(movie.id, isFavorite)}
-            />
+            <div title={!session?.user ? "Favorilere eklemek için giriş yapın" : undefined}>
+              <HeartButton
+                isFavorite={favorites.has(movie.id)}
+                variant="default"
+                size="md"
+                disabled={!session?.user}
+                onToggle={(isFavorite) => handleFavoriteToggle(movie.id, isFavorite)}
+                showTooltip={!!session?.user}
+              />
+            </div>
           </div>
 
           <Link href={`/movies/${movie.id}`}>
