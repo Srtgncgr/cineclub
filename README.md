@@ -23,16 +23,6 @@ Film tutkunları için modern bir sosyal platform. Kullanıcılar film keşfedeb
 Uygulama `http://localhost:3000` adresinde çalışır.
 
 
-
-
-## 🤝 Katkıda Bulunma
-
-1. Repository'yi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/yeni-ozellik`)
-3. Commit yapın (`git commit -m 'Yeni özellik eklendi'`)
-4. Push edin (`git push origin feature/yeni-ozellik`)
-5. Pull Request oluşturun
-
 ## 👤 Geliştirici
 
 **Serhat Gençgör** - [GitHub](https://github.com/Srtgncgr)
