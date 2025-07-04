@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 // GET /api/messages - Kullanıcının tüm konuşmalarını getir
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth();
     
@@ -16,7 +14,7 @@ export async function GET(request: NextRequest) {
     const userId = session.user.id;
 
     // Kullanıcının tüm mesajlarını getir ve konuşma partnerleri ile grupla
-    const conversations = await prisma.message.findMany({
+    const conversations = await db.message.findMany({
       where: {
         OR: [
           { senderId: userId },
@@ -28,16 +26,14 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       },
@@ -61,7 +57,7 @@ export async function GET(request: NextRequest) {
             name: partner.displayName || partner.username,
             displayName: partner.displayName,
             username: partner.username,
-            avatar: partner.avatar || '/default-avatar.png',
+            avatar: '/default-avatar.png',
             isOnline: false, // Bu bilgiyi gerçek zamanlı olarak almak için başka bir sistem gerekebilir
             lastSeen: null
           },
@@ -132,7 +128,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Alıcının var olduğunu kontrol et
-    const receiver = await prisma.user.findUnique({
+    const receiver = await db.user.findUnique({
       where: { id: receiverId },
       select: { id: true }
     });
@@ -153,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mesajı oluştur
-    const message = await prisma.message.create({
+    const message = await db.message.create({
       data: {
         senderId: session.user.id,
         receiverId,
@@ -165,16 +161,14 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       }

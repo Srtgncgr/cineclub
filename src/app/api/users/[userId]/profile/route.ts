@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 
 const prisma = new PrismaClient({
   log: ['error', 'warn'],
@@ -36,14 +36,10 @@ export async function GET(
         id: true,
         username: true,
         displayName: true,
-        avatar: true,
         bio: true,
         role: true,
         joinDate: true,
-        createdAt: true,
-        movieCount: true,
-        followerCount: true,
-        followingCount: true
+        createdAt: true
       }
     });
 
@@ -91,28 +87,7 @@ export async function GET(
       // Tüm oylamaları al
     });
 
-    // Kullanıcının listelerini al
-    const userLists = await prisma.userList.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        isPublic: true,
-        createdAt: true,
-        items: {
-          select: {
-            movie: {
-              select: {
-                id: true,
-                title: true,
-                posterPath: true
-              }
-            }
-          }
-        }
-      }
-    });
+
 
     // İzleme listesi ayrı API'den alınacak
 
@@ -138,7 +113,7 @@ export async function GET(
       where: { userId }
     });
 
-    const totalLists = userLists.length;
+
 
     // Bu ay için veriler (şimdilik mock)
     const thisMonth = new Date();
@@ -231,7 +206,6 @@ export async function GET(
         id: user.id,
         name: user.displayName || user.username,
         username: user.username,
-        avatar: user.avatar,
         bio: user.bio,
         role: user.role,
         joinDate: user.joinDate || user.createdAt,
@@ -241,9 +215,8 @@ export async function GET(
         moviesRated: totalVotes,
         averageRating: Math.round((averageRating._avg.rating || 0) * 10) / 10, // 1-5 skalasını olduğu gibi bırak
         favoriteMovies: totalFavorites,
-        listsCreated: totalLists,
-        followers: user.followerCount,
-        following: user.followingCount,
+        followers: 0, // Follow sistemi henüz aktif değil
+        following: 0, // Follow sistemi henüz aktif değil
         totalWatchTime: "0", // Bu hesaplama için film süreleri gerekli
         topGenre
       },
@@ -253,15 +226,7 @@ export async function GET(
         watchTime: "0"
       },
       favoriteMovies: formattedFavorites,
-      recentRatings: formattedRatings,
-      userLists: userLists.map((list: any) => ({
-        id: list.id,
-        title: list.title,
-        description: list.description,
-        isPublic: list.isPublic,
-        itemCount: list.items.length,
-        createdAt: list.createdAt.toISOString()
-      }))
+      recentRatings: formattedRatings
     });
 
   } catch (error) {

@@ -15,6 +15,7 @@ export async function POST(req: Request) {
 
     const existingUserByEmail = await db.user.findUnique({
       where: { email },
+      select: { id: true }
     });
 
     if (existingUserByEmail) {
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
     
     const existingUserByUsername = await db.user.findUnique({
       where: { username },
+      select: { id: true }
     });
 
     if (existingUserByUsername) {
@@ -38,6 +40,14 @@ export async function POST(req: Request) {
         username,
         displayName: displayName || username,
       },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        displayName: true,
+        role: true,
+        createdAt: true
+      }
     });
 
     return NextResponse.json(user, { status: 201 });

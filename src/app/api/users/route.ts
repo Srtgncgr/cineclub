@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 // GET /api/users - Tüm kullanıcıları listele (mesajlaşma için)
 export async function GET(request: NextRequest) {
@@ -48,16 +46,14 @@ export async function GET(request: NextRequest) {
     };
 
     // Kullanıcıları getir
-    const users = await prisma.user.findMany({
+    const users = await db.user.findMany({
       where: whereCondition,
       select: {
         id: true,
         username: true,
         displayName: true,
-        avatar: true,
         bio: true,
         role: true,
-        isPrivate: true,
         joinDate: true,
         // Son mesajlaşma bilgisi için
         sentMessages: {
@@ -98,7 +94,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Toplam kullanıcı sayısı
-    const totalUsers = await prisma.user.count({
+    const totalUsers = await db.user.count({
       where: whereCondition
     });
 
@@ -122,10 +118,8 @@ export async function GET(request: NextRequest) {
         id: user.id,
         username: user.username,
         displayName: user.displayName,
-        avatar: user.avatar,
         bio: user.bio,
         role: user.role,
-        isPrivate: user.isPrivate,
         joinDate: user.joinDate,
         lastMessage: lastMessage ? {
           content: lastMessage.content,

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   Mail, 
@@ -10,7 +10,6 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  Chrome,
   Film,
   ArrowLeft,
   Check
@@ -21,6 +20,27 @@ interface LoginFormData {
   email: string;
   password: string;
   rememberMe: boolean;
+}
+
+// Error Handler Component
+function ErrorHandler({ setErrors }: { setErrors: (errors: Record<string, string>) => void }) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    const callbackUrl = searchParams.get('callbackUrl');
+
+    if (error === 'unauthorized') {
+      setErrors({ general: 'Bu sayfaya erişmek için admin yetkisine sahip olmanız gerekiyor.' });
+    }
+
+    // Callback URL varsa state'e kaydet (login başarılı olduğunda kullanmak için)
+    if (callbackUrl) {
+      sessionStorage.setItem('loginCallbackUrl', callbackUrl);
+    }
+  }, [searchParams, setErrors]);
+
+  return null;
 }
 
 export default function LoginPage() {
@@ -36,6 +56,8 @@ export default function LoginPage() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+
 
   const handleInputChange = (field: keyof LoginFormData, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -87,7 +109,9 @@ export default function LoginPage() {
         setLoginSuccess(true);
         // Başarılı girişten sonra yönlendirme
         setTimeout(() => {
-          router.push('/');
+          const callbackUrl = sessionStorage.getItem('loginCallbackUrl');
+          sessionStorage.removeItem('loginCallbackUrl'); // Temizle
+          router.push(callbackUrl || '/');
         }, 1500);
       }
     } catch (error) {
@@ -116,6 +140,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
+      {/* Error Handler */}
+      <Suspense fallback={null}>
+        <ErrorHandler setErrors={setErrors} />
+      </Suspense>
       
       {/* Header */}
       <div className="absolute top-6 left-6">

@@ -26,6 +26,7 @@ interface CommentListProps {
     name: string;
     avatar: string;
   };
+  userRating?: number; // Mevcut kullanıcı puanı
   emptyStateText?: string;
   className?: string;
 }
@@ -40,6 +41,7 @@ export const CommentList: React.FC<CommentListProps> = ({
   showCommentForm = true,
   allowRating = true,
   currentUser,
+  userRating = 0,
   emptyStateText = "Henüz yorum yapılmamış. İlk yorumu siz yapın!",
   className
 }) => {
@@ -110,6 +112,7 @@ export const CommentList: React.FC<CommentListProps> = ({
             name: currentUser.name,
             avatar: currentUser.avatar
           } : undefined}
+          userRating={userRating}
           className="bg-white p-4 rounded-lg border border-gray-200"
         />
       )}

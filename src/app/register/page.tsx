@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { signIn } from "next-auth/react";
+
 import { 
   User,
   Mail, 
@@ -12,12 +12,10 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle, 
-  Chrome,
   Film,
   ArrowLeft,
   Check,
-  Shield,
-  Info
+  Shield
 } from 'lucide-react';
 
 interface RegisterFormData {

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import SearchInput, { useSearchInput } from '@/components/ui/search-input';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { 
   Film, 
   Search, 
@@ -26,15 +27,23 @@ interface HeaderProps {
   className?: string;
 }
 
+interface NavigationItem {
+  label: string;
+  href: string;
+  icon: any;
+  badge?: number;
+}
+
 export const Header = React.forwardRef<HTMLElement, HeaderProps>(
   ({ className }, ref) => {
-    const { data: session, status, update } = useSession();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
-    const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
-    const [mounted, setMounted] = React.useState(false);
-    const [avatarKey, setAvatarKey] = React.useState(0);
-    const [userDisplayName, setUserDisplayName] = React.useState<string | null>(null);
-    const router = useRouter();
+      const { data: session, status, update } = useSession();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  const [avatarKey, setAvatarKey] = React.useState(0);
+  const [userDisplayName, setUserDisplayName] = React.useState<string | null>(null);
+  const router = useRouter();
+  const { unreadCount } = useUnreadMessages();
 
     // Search functionality
     const {
@@ -105,10 +114,10 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
     const user = session?.user;
     const isAuthenticated = status === 'authenticated';
 
-    const navigationItems = [
+    const navigationItems: NavigationItem[] = [
       { label: 'Ana Sayfa', href: '/', icon: Film },
       { label: 'Filmler', href: '/movies', icon: Star },
-      { label: 'Mesajlar', href: '/messages', icon: MessageCircle},
+      { label: 'Mesajlar', href: '/messages', icon: MessageCircle, badge: unreadCount > 0 ? unreadCount : undefined },
     ];
 
     // Search suggestions for header
@@ -196,6 +205,11 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                     <item.icon className="w-4 h-4 flex-shrink-0" />
                     <span className="hidden xl:block">{item.label}</span>
                     <span className="xl:hidden">{item.label.split(' ')[0]}</span>
+                    {item.badge && (
+                      <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-semibold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </a>
                 ))}
               </nav>
@@ -282,10 +296,6 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                                 {mounted ? (userDisplayName || user.name || 'Kullanıcı') : (user.name || 'Kullanıcı')}
                               </p>
                               <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                              <div className="flex items-center gap-1 mt-1">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs text-green-600 font-medium">Çevrimiçi</span>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -360,11 +370,16 @@ export const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   <a
                     key={item.href}
                     href={item.href}
-                    className="flex items-center gap-4 px-6 py-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 mx-4 rounded-xl"
+                    className="flex items-center gap-4 px-6 py-4 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all duration-200 mx-4 rounded-xl relative"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
                     <item.icon className="w-5 h-5" />
                     <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="bg-primary text-white text-xs font-semibold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 ml-auto">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </a>
                 ))}
                 

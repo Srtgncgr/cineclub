@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient, WeeklyStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { getAuthSession } from '@/lib/auth';
 
 const prisma = new PrismaClient();
@@ -30,23 +30,53 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Basit haftalık liste verisi (Prisma type hatalarını geçici olarak basit tutuyoruz)
+    // Haftalık liste verisi filmlerle birlikte
     const weeklyLists = await prisma.weeklyList.findMany({
       where,
+      include: {
+        movies: {
+          include: {
+            movie: {
+              include: {
+                genres: {
+                  include: {
+                    genre: true
+                  }
+                }
+              }
+            }
+          },
+          orderBy: {
+            position: 'asc'
+          }
+        }
+      },
       orderBy: {
         startDate: 'desc'
       }
     });
 
-    // Şimdilik basit dönüş, filmler olmadan
+    // Filmlerle birlikte transform et
     const transformedLists = weeklyLists.map(list => ({
       id: list.id,
       title: list.title,
       description: list.description,
+      theme: list.theme,
       startDate: list.startDate.toISOString(),
       endDate: list.endDate.toISOString(),
       status: list.status.toLowerCase(),
-      movies: [], // Şimdilik boş, daha sonra ekleyeceğiz
+      movies: list.movies.map((item: any) => ({
+        id: item.id,
+        movieId: item.movieId,
+        title: item.movie.title,
+        year: item.movie.year || (item.movie.releaseDate ? new Date(item.movie.releaseDate).getFullYear() : 0),
+        poster: item.movie.posterPath,
+        director: '', // Bu veriyi crew'dan alabiliriz gerekirse
+        genres: item.movie.genres.map((g: any) => g.genre.name),
+        description: item.movie.overview || '',
+        rating: item.movie.voteAverage,
+        position: item.position
+      })),
       createdAt: list.createdAt.toISOString(),
       updatedAt: list.updatedAt.toISOString()
     }));
@@ -68,16 +98,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, startDate, endDate } = body;
+    const { title, description, theme, startDate, endDate } = body;
 
     // Yeni haftalık liste oluştur
     const weeklyList = await prisma.weeklyList.create({
       data: {
         title,
         description: description || '',
+        theme: theme || '',
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        status: WeeklyStatus.UPCOMING // Doğru enum değeri
+        status: 'UPCOMING'
       }
     });
 
@@ -107,16 +138,28 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Liste ID\'leri gerekli' }, { status: 400 });
     }
 
-    let newStatus: WeeklyStatus;
+    let newStatus: string;
     let message: string;
 
     switch (action) {
       case 'publish':
-        newStatus = WeeklyStatus.ACTIVE;
+        newStatus = 'ACTIVE';
         message = 'Listeler başarıyla yayınlandı';
+        
+        // Aktif hale getirme işleminde, önce diğer tüm aktif listeleri arşivle
+        await prisma.weeklyList.updateMany({
+          where: {
+            status: 'ACTIVE',
+            NOT: { id: { in: listIds } }
+          },
+          data: {
+            status: 'ARCHIVED',
+            updatedAt: new Date()
+          }
+        });
         break;
       case 'cancel':
-        newStatus = WeeklyStatus.ARCHIVED;
+        newStatus = 'ARCHIVED';
         message = 'Listeler başarıyla iptal edildi';
         break;
       default:

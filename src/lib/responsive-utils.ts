@@ -186,7 +186,7 @@ export const performance = {
   },
 
   // Debounce for performance
-  debounce: <T extends (...args: any[]) => any>(
+  debounce: <T extends (...args: unknown[]) => unknown>(
     func: T,
     wait: number
   ): ((...args: Parameters<T>) => void) => {

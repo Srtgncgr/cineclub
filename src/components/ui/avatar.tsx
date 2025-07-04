@@ -4,8 +4,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { User } from 'lucide-react';
 
-// Avatar boyut türleri
-type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+// Avatar boyut türleri (sadece kullanılanlar)
+type AvatarSize = 'sm' | 'md' | 'lg';
 
 // Avatar interface
 interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -14,7 +14,7 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: AvatarSize;
   fallback?: string;
   showStatus?: boolean;
-  status?: 'online' | 'offline' | 'away' | 'busy';
+  status?: 'online' | 'offline';
   children?: React.ReactNode;
 }
 
@@ -32,32 +32,24 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     ...props 
   }, ref) => {
     
-    // Boyut stilleri
+    // Boyut stilleri (sadece kullanılanlar)
     const sizeStyles = {
-      xs: 'w-6 h-6 text-xs',
       sm: 'w-8 h-8 text-sm',
       md: 'w-10 h-10 text-base',
-      lg: 'w-12 h-12 text-lg',
-      xl: 'w-16 h-16 text-xl',
-      '2xl': 'w-20 h-20 text-2xl'
+      lg: 'w-12 h-12 text-lg'
     };
 
-    // Status renkleri
+    // Status renkleri (sadece kullanılanlar)
     const statusColors = {
       online: 'bg-green-500',
-      offline: 'bg-gray-400',
-      away: 'bg-yellow-500',
-      busy: 'bg-red-500'
+      offline: 'bg-gray-400'
     };
 
-    // Status boyutları
+    // Status boyutları (sadece kullanılanlar)
     const statusSizes = {
-      xs: 'w-1.5 h-1.5',
       sm: 'w-2 h-2',
       md: 'w-2.5 h-2.5',
-      lg: 'w-3 h-3',
-      xl: 'w-4 h-4',
-      '2xl': 'w-5 h-5'
+      lg: 'w-3 h-3'
     };
 
     // Fallback text oluşturma
@@ -72,7 +64,7 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
           return words[0][0].toUpperCase();
         }
       }
-      return 'U';
+      return 'K';
     };
 
     const [imageError, setImageError] = React.useState(false);
@@ -121,11 +113,8 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
               ) : (
                 <User className={cn(
                   'text-foreground/50',
-                  size === 'xs' ? 'w-3 h-3' :
                   size === 'sm' ? 'w-4 h-4' :
-                  size === 'md' ? 'w-5 h-5' :
-                  size === 'lg' ? 'w-6 h-6' :
-                  size === 'xl' ? 'w-8 h-8' : 'w-10 h-10'
+                  size === 'md' ? 'w-5 h-5' : 'w-6 h-6'
                 )} />
               )
             )}
@@ -149,224 +138,5 @@ export const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
 );
 
 Avatar.displayName = 'Avatar';
-
-// Avatar Group bileşeni (birden fazla avatar gösterimi için)
-interface AvatarGroupProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  max?: number;
-  size?: AvatarSize;
-  spacing?: 'tight' | 'normal' | 'loose';
-}
-
-export const AvatarGroup = React.forwardRef<HTMLDivElement, AvatarGroupProps>(
-  ({ children, max = 5, size = 'md', spacing = 'normal', className, ...props }, ref) => {
-    
-    const spacingStyles = {
-      tight: '-space-x-1',
-      normal: '-space-x-2',
-      loose: '-space-x-1'
-    };
-
-    const childrenArray = React.Children.toArray(children);
-    const visibleChildren = childrenArray.slice(0, max);
-    const remainingCount = childrenArray.length - max;
-
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex items-center',
-          spacingStyles[spacing],
-          className
-        )}
-        {...props}
-      >
-        {visibleChildren.map((child, index) => (
-          <div
-            key={index}
-            className="relative ring-2 ring-background rounded-full"
-            style={{ zIndex: visibleChildren.length - index }}
-          >
-            {React.isValidElement(child) 
-              ? React.cloneElement(child, { size } as any)
-              : child
-            }
-          </div>
-        ))}
-        
-        {remainingCount > 0 && (
-          <div
-            className="relative ring-2 ring-background rounded-full"
-            style={{ zIndex: 0 }}
-          >
-            <Avatar
-              size={size}
-              fallback={`+${remainingCount}`}
-              className="bg-primary/10 text-primary font-semibold"
-            />
-          </div>
-        )}
-      </div>
-    );
-  }
-);
-
-AvatarGroup.displayName = 'AvatarGroup';
-
-// User Avatar bileşeni (kullanıcı bilgileri ile birlikte)
-interface UserAvatarProps extends Omit<AvatarProps, 'alt' | 'fallback'> {
-  user: {
-    name: string;
-    avatar?: string;
-    email?: string;
-    isOnline?: boolean;
-  };
-  showName?: boolean;
-  showEmail?: boolean;
-  namePosition?: 'right' | 'bottom';
-}
-
-export const UserAvatar = React.forwardRef<HTMLDivElement, UserAvatarProps>(
-  ({ 
-    user, 
-    showName = false, 
-    showEmail = false, 
-    namePosition = 'right',
-    showStatus = false,
-    className,
-    ...props 
-  }, ref) => {
-    
-    const avatarElement = (
-      <Avatar
-        src={user.avatar}
-        alt={user.name}
-        fallback={user.name}
-        showStatus={showStatus}
-        status={user.isOnline ? 'online' : 'offline'}
-        {...props}
-      />
-    );
-
-    if (!showName && !showEmail) {
-      return <div ref={ref} className={className}>{avatarElement}</div>;
-    }
-
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex items-center',
-          namePosition === 'bottom' ? 'flex-col' : 'flex-row',
-          namePosition === 'right' && 'gap-3',
-          namePosition === 'bottom' && 'gap-2',
-          className
-        )}
-      >
-        {avatarElement}
-        
-        {(showName || showEmail) && (
-          <div className={cn(
-            'flex flex-col',
-            namePosition === 'bottom' && 'items-center text-center'
-          )}>
-            {showName && (
-              <span className="text-body-small font-medium text-foreground">
-                {user.name}
-              </span>
-            )}
-            {showEmail && user.email && (
-              <span className="text-caption text-foreground/60">
-                {user.email}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-);
-
-UserAvatar.displayName = 'UserAvatar';
-
-// Movie Avatar bileşeni (film posterleri için)
-interface MovieAvatarProps extends Omit<AvatarProps, 'alt' | 'fallback' | 'showStatus' | 'status'> {
-  movie: {
-    title: string;
-    poster?: string;
-    year?: number;
-  };
-  showTitle?: boolean;
-  titlePosition?: 'right' | 'bottom';
-}
-
-export const MovieAvatar = React.forwardRef<HTMLDivElement, MovieAvatarProps>(
-  ({ 
-    movie, 
-    showTitle = false, 
-    titlePosition = 'bottom',
-    className,
-    ...props 
-  }, ref) => {
-    
-    const avatarElement = (
-      <Avatar
-        src={movie.poster}
-        alt={movie.title}
-        fallback={movie.title.slice(0, 2).toUpperCase()}
-        className="rounded-lg" // Film posterleri için köşeli
-        {...props}
-      >
-        {!movie.poster && (
-          <div className="text-center">
-            <span className="text-xs font-bold">
-              {movie.title.slice(0, 3).toUpperCase()}
-            </span>
-            {movie.year && (
-              <div className="text-xs opacity-60">
-                {movie.year}
-              </div>
-            )}
-          </div>
-        )}
-      </Avatar>
-    );
-
-    if (!showTitle) {
-      return <div ref={ref} className={className}>{avatarElement}</div>;
-    }
-
-    return (
-      <div
-        ref={ref}
-        className={cn(
-          'flex items-center',
-          titlePosition === 'bottom' ? 'flex-col' : 'flex-row',
-          titlePosition === 'right' && 'gap-3',
-          titlePosition === 'bottom' && 'gap-2',
-          className
-        )}
-      >
-        {avatarElement}
-        
-        <div className={cn(
-          'flex flex-col',
-          titlePosition === 'bottom' && 'items-center text-center'
-        )}>
-          <span className="text-body-small font-medium text-foreground line-clamp-1">
-            {movie.title}
-          </span>
-          {movie.year && (
-            <span className="text-caption text-foreground/60">
-              {movie.year}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-);
-
-MovieAvatar.displayName = 'MovieAvatar';
 
 export default Avatar; 

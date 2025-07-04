@@ -1,4 +1,4 @@
-import { PrismaClient } from '../src/generated/prisma';
+import { PrismaClient } from '@prisma/client';
 import 'dotenv/config';
 
 const prisma = new PrismaClient();
@@ -82,7 +82,7 @@ async function main() {
     const existingTmdbIds = new Set(existingGenres.map(g => g.tmdbId));
     
     for (const tmdbGenre of tmdbGenres) {
-      if (existingTmdbIds.has(BigInt(tmdbGenre.id))) {
+      if (existingTmdbIds.has(tmdbGenre.id)) {
         continue;
       }
 
@@ -219,7 +219,7 @@ async function main() {
         // Türleri bağla
         const genreConnections = movieDetails.genres
           .map(g => {
-            const genreId = genreMap.get(BigInt(g.id));
+            const genreId = genreMap.get(g.id);
             if (!genreId) {
               console.log(`   ⚠️ Tür bulunamadı: ${g.name} (TMDB ID: ${g.id})`);
               return null;
@@ -269,7 +269,7 @@ async function main() {
         // Cast bağlantıları (sadece ilk 8 oyuncu)
         const castConnections = limitedCast
           .map(c => {
-            const personId = personMap.get(BigInt(c.id));
+            const personId = personMap.get(c.id);
             if (!personId) return null;
             return {
               movieId: createdMovie.id,
@@ -288,7 +288,7 @@ async function main() {
         // Crew bağlantıları (sadece önemli pozisyonlar)
         const crewConnections = limitedCrew
           .map(c => {
-            const personId = personMap.get(BigInt(c.id));
+            const personId = personMap.get(c.id);
             if (!personId) return null;
             return {
               movieId: createdMovie.id,

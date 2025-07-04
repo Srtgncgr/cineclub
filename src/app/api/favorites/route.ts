@@ -24,7 +24,6 @@ export async function GET() {
         movie: {
           include: {
             genres: { include: { genre: true } },
-            votes: true,
           },
         },
       },

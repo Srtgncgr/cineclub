@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { 
   Send,
   ArrowLeft,
@@ -53,6 +54,7 @@ export default function MessageDetail({ userId, initialUser, initialMessages }: 
   const [loadingMore, setLoadingMore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSending, setIsSending] = useState(false);
+  const { refreshUnreadCount } = useUnreadMessages();
 
   // Mesajları getir
   useEffect(() => {
@@ -139,7 +141,12 @@ export default function MessageDetail({ userId, initialUser, initialMessages }: 
       }]);
       
       setNewMessage('');
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      // messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      
+      // Header'daki badge'i güncellemek için unread count'ı refresh et
+      setTimeout(() => {
+        refreshUnreadCount();
+      }, 500);
     } catch (err) {
       console.error('Mesaj gönderme hatası:', err);
       setError(err instanceof Error ? err.message : 'Mesaj gönderilemedi');

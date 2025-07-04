@@ -84,6 +84,30 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
   const [isWatchlistLoading, setIsWatchlistLoading] = useState(false);
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   
+  // Rating senkronizasyonu için merkezi state
+  const [userRating, setUserRating] = useState(0);
+
+  // Kullanıcının mevcut puanını yükle
+  useEffect(() => {
+    const fetchUserRating = async () => {
+      if (!session?.user || !movie?.id) return;
+      
+      try {
+        const response = await fetch(`/api/movies/${movie.id}/vote`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.userVote?.rating) {
+            setUserRating(data.userVote.rating);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user rating:', error);
+      }
+    };
+
+    fetchUserRating();
+  }, [movie?.id, session?.user]);
+  
   // IMDb puanını statik tutmak için - bir kez set edilir, değişmez
   const [staticImdbRating, setStaticImdbRating] = useState<{ average: number; count: number } | null>(null);
   // Tamamen sabit IMDb puanı - hiç değişmez
@@ -271,7 +295,6 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         throw new Error(result.error || 'Yorum eklenemedi');
       }
       
-      console.log('Comment added successfully:', result);
       fetchComments(); // Yorumları yenile
     } catch (error) {
       console.error('Error adding comment:', error);
@@ -295,7 +318,6 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         throw new Error(result.error || 'İşlem başarısız');
       }
       
-      console.log('Comment action successful:', result);
       fetchComments(); // Yorumları yenile
     } catch (error) {
       console.error('Error with comment action:', error);
@@ -318,7 +340,6 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
         throw new Error(result.error || 'Yorum güncellenemedi');
       }
       
-      console.log('Comment updated successfully:', result);
       fetchComments(); // Yorumları yenile
     } catch (error) {
       console.error('Error updating comment:', error);
@@ -495,6 +516,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
               <InteractiveRating 
                 movieId={movie.id} 
                 size="md"
+                onRatingChange={(rating) => setUserRating(rating)}
               />
             </div>
             
@@ -514,6 +536,7 @@ export default function MovieDetailPage({ params }: MovieDetailPageProps) {
                 } : undefined}
                 allowRating={true}
                 showCommentForm={true}
+                userRating={userRating}
               />
             </div>
           </div>

@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { 
   Search,
   Plus,
@@ -13,7 +15,9 @@ import {
   CheckCheck,
   Pin,
   Settings,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  LogIn
 } from 'lucide-react';
 
 interface Conversation {
@@ -43,7 +47,9 @@ interface Conversation {
 
 export default function MessagesPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
+  const { refreshUnreadCount } = useUnreadMessages();
 
   const [selectedConversations, setSelectedConversations] = useState<string[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -51,6 +57,12 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Sadece authenticated kullanıcılar için veri çek
+    if (status !== 'authenticated') {
+      setLoading(false);
+      return;
+    }
+
     const fetchConversations = async () => {
       try {
         setLoading(true);
@@ -99,7 +111,7 @@ export default function MessagesPage() {
     };
 
     fetchConversations();
-  }, []);
+  }, [status]);
 
   // Filtrelenmiş konuşmalar
   const filteredConversations = conversations.filter(conv => {
@@ -140,6 +152,10 @@ export default function MessagesPage() {
 
   const handleConversationClick = (userId: string) => {
     router.push(`/messages/${userId}`);
+    // Konuşmaya girildiğinde unread count'ı güncelle
+    setTimeout(() => {
+      refreshUnreadCount();
+    }, 1000);
   };
 
   const toggleConversationSelection = (id: string) => {
@@ -152,6 +168,67 @@ export default function MessagesPage() {
 
   const totalUnreadCount = conversations.reduce((sum, conv) => sum + (conv.unreadCount || 0), 0);
   const onlineUsers = conversations.filter(conv => conv.user?.isOnline).length;
+
+  // Loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Authentication required
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-primary" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Mesajlar İçin Giriş Yapın
+          </h1>
+          
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Diğer kullanıcılarla mesajlaşmak ve konuşmalarınızı görüntülemek için önce giriş yapmanız gerekiyor.
+          </p>
+          
+          <div className="space-y-3">
+            <Button 
+              onClick={() => router.push('/login')}
+              className="w-full"
+              size="lg"
+            >
+              <LogIn className="w-5 h-5 mr-2" />
+              Giriş Yap
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/register')}
+              className="w-full"
+              size="lg"
+            >
+              Hesap Oluştur
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={() => router.push('/')}
+              className="w-full text-gray-500"
+            >
+              Ana Sayfaya Dön
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

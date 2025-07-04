@@ -46,15 +46,29 @@ export default function AdminDashboard() {
   useEffect(() => {
     // Sadece admin yetkisi varsa veri çek
     if (status !== 'authenticated' || (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'admin')) {
+      console.log('Admin yetki kontrolü:', { status, role: session?.user?.role });
+      setLoading(false);
       return;
     }
 
     const fetchStats = async () => {
       try {
+        console.log('İstatistik API çağrısı yapılıyor...');
         const response = await fetch('/api/admin/stats');
+        console.log('API Response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('API Response data:', data);
+        
         if (data.success) {
           setDynamicStats(data.stats);
+          console.log('İstatistikler başarıyla yüklendi:', data.stats);
+        } else {
+          console.error('API başarısız response döndü:', data);
         }
       } catch (error) {
         console.error('İstatistikler yüklenirken hata:', error);
@@ -172,6 +186,53 @@ export default function AdminDashboard() {
     router.push(route);
   };
 
+
+
+  // Giriş yapmamış kullanıcılar için
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yetki kontrolü yapılıyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Erişim Reddedildi</h1>
+          <p className="text-gray-600 mb-4">Bu sayfaya erişmek için giriş yapmanız gerekiyor.</p>
+          <Button onClick={() => router.push('/login')}>
+            Giriş Yap
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (session?.user?.role !== 'ADMIN' && session?.user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Shield className="w-16 h-16 text-orange-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Yetkisiz Erişim</h1>
+          <p className="text-gray-600 mb-4">Bu sayfaya erişmek için admin yetkisine sahip olmanız gerekiyor.</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Mevcut role: {session?.user?.role || 'Bilinmiyor'} | Status: {status}
+          </p>
+          <Button onClick={() => router.push('/')}>
+            Ana Sayfaya Dön
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -200,6 +261,7 @@ export default function AdminDashboard() {
               <option value="90d">Son 3 Ay</option>
             </select>
             
+
             <Button variant="outline">
               <Settings className="w-4 h-4 mr-2" />
               Ayarlar

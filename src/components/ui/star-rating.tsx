@@ -136,7 +136,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       </div>
 
       {/* Rating Value */}
-      {showValue && (
+      {showValue && rating > 0 && (
         <span className="text-sm font-medium text-gray-700 ml-2">
           {isHovering && !readonly ? hoverRating : rating.toFixed(1)}
         </span>
@@ -146,7 +146,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
       {showText && (
         <span className="text-sm text-gray-600 ml-2">
           {readonly 
-            ? `${rating.toFixed(1)}/${maxRating}`
+            ? rating > 0 ? `${rating.toFixed(1)}/${maxRating}` : "Puan verilmemiş"
             : isHovering 
               ? getRatingText(hoverRating)
               : rating > 0 

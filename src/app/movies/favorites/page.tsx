@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -15,7 +17,9 @@ import {
   Film,
   SortAsc,
   SortDesc,
-  Loader2
+  Loader2,
+  Lock,
+  LogIn
 } from 'lucide-react';
 
 // Favorite movie type
@@ -36,11 +40,19 @@ type FavoriteMovie = {
 };
 
 export default function FavoritesPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [favorites, setFavorites] = useState<FavoriteMovie[]>([]);
   const [loading, setLoading] = useState(true);
 
   // API'den favorileri yükle
   useEffect(() => {
+    // Sadece authenticated kullanıcılar için veri çek
+    if (status !== 'authenticated') {
+      setLoading(false);
+      return;
+    }
+
     const fetchFavorites = async () => {
       try {
         setLoading(true);
@@ -59,7 +71,7 @@ export default function FavoritesPage() {
     };
 
     fetchFavorites();
-  }, []);
+  }, [status]);
 
   const removeFromFavorites = async (favoriteId: string) => {
     try {
@@ -76,6 +88,67 @@ export default function FavoritesPage() {
       console.error('Error removing favorite:', error);
     }
   };
+
+  // Loading state
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Authentication required
+  if (status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-8">
+          <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-red-500" />
+          </div>
+          
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Favoriler İçin Giriş Yapın
+          </h1>
+          
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Favori filmlerinizi görmek ve yönetmek için önce giriş yapmanız gerekiyor.
+          </p>
+          
+          <div className="space-y-3">
+            <Button 
+              onClick={() => router.push('/login')}
+              className="w-full"
+              size="lg"
+            >
+              <LogIn className="w-5 h-5 mr-2" />
+              Giriş Yap
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/register')}
+              className="w-full"
+              size="lg"
+            >
+              Hesap Oluştur
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              onClick={() => router.push('/movies')}
+              className="w-full text-gray-500"
+            >
+              Filmleri Keşfet
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -146,7 +219,7 @@ export default function FavoritesPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
               {favorites.map((favorite) => (
-                <div key={favorite.id} className="group bg-white rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+                <div key={favorite.id} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
                   
                     <div className="relative aspect-[2/3] overflow-hidden">
                       <img

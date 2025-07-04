@@ -32,7 +32,7 @@ export async function GET(
         _count: {
           select: {
             addedMovies: true,
-            votes: true,
+            
             comments: true,
             sentMessages: true
           }

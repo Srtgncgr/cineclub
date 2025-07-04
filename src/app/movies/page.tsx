@@ -1,9 +1,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import { 
-  Search, 
   Film,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import MovieSearch from '@/app/movies/MovieSearch';
 import MovieList from '@/app/movies/MovieList';
 import GenreFilter from '@/app/movies/GenreFilter';

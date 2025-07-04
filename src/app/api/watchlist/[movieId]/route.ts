@@ -1,8 +1,6 @@
 import { getAuthSession } from "@/lib/auth";
-import { PrismaClient } from '@/generated/prisma';
+import { db } from "@/lib/db";
 import { NextRequest, NextResponse } from 'next/server';
-
-const db = new PrismaClient();
 
 // GET /api/watchlist/[movieId] - Filmin watchlist durumunu kontrol et
 export async function GET(req: NextRequest, { params }: { params: Promise<{ movieId: string }> }) {

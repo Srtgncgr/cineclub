@@ -1,27 +1,23 @@
 import { Suspense } from 'react';
 import MessageDetail from '@/components/messages/MessageDetail';
 import { Loader2 } from 'lucide-react';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-import { PrismaClient } from '@prisma/client';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
 import { redirect } from 'next/navigation';
-
-const prisma = new PrismaClient();
 
 async function getUser(userId: string, currentUserId: string) {
   try {
     console.log('Kullanıcı bilgisi alınıyor:', userId);
     
     // Kullanıcı bilgilerini getir
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
         username: true,
         displayName: true,
-        avatar: true,
         bio: true,
         role: true,
-        isPrivate: true,
         joinDate: true,
         createdAt: true,
         updatedAt: true
@@ -37,10 +33,10 @@ async function getUser(userId: string, currentUserId: string) {
       id: user.id,
       name: user.displayName || user.username,
       username: user.username,
-      avatar: user.avatar || '/default-avatar.png',
+      avatar: '/default-avatar.png', // Default avatar
       bio: user.bio,
       role: user.role,
-      isPrivate: user.isPrivate,
+      isPrivate: false, // Default olarak public
       joinDate: user.joinDate,
       isOnline: false,
       lastSeen: user.updatedAt.toISOString()
@@ -59,7 +55,7 @@ async function getMessages(userId: string, currentUserId: string) {
     console.log('Mesajlar alınıyor:', userId);
     
     // Diğer kullanıcının var olduğunu kontrol et
-    const otherUser = await prisma.user.findUnique({
+    const otherUser = await db.user.findUnique({
       where: { id: userId },
       select: { id: true }
     });
@@ -69,7 +65,7 @@ async function getMessages(userId: string, currentUserId: string) {
     }
 
     // İki kullanıcı arasındaki mesajları getir
-    const messages = await prisma.message.findMany({
+    const messages = await db.message.findMany({
       where: {
         OR: [
           {
@@ -87,16 +83,14 @@ async function getMessages(userId: string, currentUserId: string) {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       },
@@ -107,7 +101,7 @@ async function getMessages(userId: string, currentUserId: string) {
     });
 
     // Karşı taraftan gelen okunmamış mesajları okundu olarak işaretle
-    await prisma.message.updateMany({
+    await db.message.updateMany({
       where: {
         senderId: userId,
         receiverId: currentUserId,
@@ -129,12 +123,11 @@ async function getMessages(userId: string, currentUserId: string) {
         id: msg.sender.id,
         name: msg.sender.displayName || msg.sender.username || 'İsimsiz Kullanıcı',
         username: msg.sender.username || '',
-        avatar: msg.sender.avatar || '/default-avatar.png',
+        avatar: '/default-avatar.png', // Default avatar
         isOnline: false
       }
     }));
 
-    console.log('Mesajlar verisi:', formattedMessages.length);
     return formattedMessages;
   } catch (error) {
     console.error('getMessages hatası:', error);
@@ -145,13 +138,10 @@ async function getMessages(userId: string, currentUserId: string) {
 export default async function MessageDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
   
-  console.log('MessageDetailPage çağrıldı, userId:', userId);
-  
   // Auth kontrolü
   const session = await auth();
   
   if (!session?.user?.id) {
-    console.log('Kullanıcı girişi yapılmamış, login sayfasına yönlendiriliyor');
     redirect('/login');
   }
 

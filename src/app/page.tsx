@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { 
   Play, 
@@ -37,6 +38,34 @@ const iconMap: { [key: string]: React.ElementType } = {
   PlayCircle
 };
 
+// Error Alert Component
+function ErrorAlert() {
+  const searchParams = useSearchParams();
+  const [showErrorAlert, setShowErrorAlert] = useState(false);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'unauthorized') {
+      setShowErrorAlert(true);
+      setTimeout(() => setShowErrorAlert(false), 5000);
+    }
+  }, [searchParams]);
+
+  if (!showErrorAlert) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg max-w-md">
+      <div className="flex items-start gap-3">
+        <Shield className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+        <div className="flex-1">
+          <h3 className="text-red-800 font-medium text-sm">Erişim Engellendi</h3>
+          <p className="text-red-700 text-sm mt-1">Bu sayfaya erişim için giriş yapmanız gerekiyor.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
@@ -45,6 +74,7 @@ export default function Home() {
   const [popularMovies, setPopularMovies] = useState<Movie[]>([]);
   const [weeklyMovies, setWeeklyMovies] = useState<Movie[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [currentWeeklyTheme, setCurrentWeeklyTheme] = useState<string>('Dünya Sineması');
 
   // Hydration safety - only run on client
   useEffect(() => {
@@ -80,9 +110,22 @@ export default function Home() {
       }
     };
 
+    const fetchActiveWeeklyTheme = async () => {
+      try {
+        const response = await fetch('/api/admin/weekly-lists?status=active');
+        const data = await response.json();
+        if (data.length > 0 && data[0].theme) {
+          setCurrentWeeklyTheme(data[0].theme);
+        }
+      } catch (error) {
+        console.error('Error fetching active weekly theme:', error);
+      }
+    };
+
     fetchPopularMovies();
     fetchWeeklyMovies();
     fetchCategories();
+    fetchActiveWeeklyTheme();
   }, []);
 
 
@@ -167,6 +210,11 @@ export default function Home() {
   return (
     <div className="bg-white">
       
+      {/* Error Alert */}
+      <Suspense fallback={null}>
+        <ErrorAlert />
+      </Suspense>
+      
       {/* Enhanced Scroll Video Hero */}
       <section ref={heroRef} className="relative border-b border-gray-200 overflow-hidden min-h-[100vh]">
         {/* Video Background */}
@@ -227,6 +275,7 @@ export default function Home() {
                   {/* CTA Section */}
                   <div className="space-y-4 sm:space-y-6">
                     <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                    <Link href="/register">
                       <Button 
                         variant="primary" 
                         size="lg" 
@@ -234,14 +283,16 @@ export default function Home() {
                       >
                         Hemen Katıl
                       </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        size="lg" 
-                        className="px-8 sm:px-10 py-4 sm:py-5 text-lg sm:text-xl font-semibold hover:scale-105 bg-white/5 backdrop-blur-xl border-2 border-white/20 text-white hover:bg-white/10 hover:border-white/40"
-                      >
-                        Filmleri Gez
-                      </Button>
+                      </Link>
+                      <Link href="/movies">
+                        <Button 
+                          variant="outline" 
+                          size="lg" 
+                          className="px-8 sm:px-10 py-4 sm:py-5 text-lg sm:text-xl font-semibold hover:scale-105 bg-white/5 backdrop-blur-xl border-2 border-white/20 text-white hover:bg-white/10 hover:border-white/40"
+                        >
+                          Filmleri Gez
+                        </Button>
+                      </Link>
                     </div>
                     
                     <p className="text-white/60 text-xs sm:text-sm">
@@ -385,7 +436,7 @@ export default function Home() {
             </h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
               Her hafta topluluk tarafından seçilen özel temalar ve filmler. 
-              Bu hafta <span className="text-accent font-semibold">"Dünya Sineması"</span> temasındayız!
+              Bu hafta <span className="text-accent font-semibold">"{currentWeeklyTheme}"</span> temasındayız!
             </p>
             
             {/* Countdown Timer */}

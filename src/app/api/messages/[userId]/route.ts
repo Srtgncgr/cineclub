@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
 
 // GET /api/messages/[userId] - Belirli kullanıcı ile olan mesajları getir
 export async function GET(
@@ -26,13 +24,12 @@ export async function GET(
     const offset = (page - 1) * limit;
 
     // Diğer kullanıcının var olduğunu kontrol et
-    const otherUser = await prisma.user.findUnique({
+    const otherUser = await db.user.findUnique({
       where: { id: otherUserId },
       select: {
         id: true,
         username: true,
-        displayName: true,
-        avatar: true
+        displayName: true
       }
     });
 
@@ -44,7 +41,7 @@ export async function GET(
     }
 
     // İki kullanıcı arasındaki mesajları getir
-    const messages = await prisma.message.findMany({
+    const messages = await db.message.findMany({
       where: {
         OR: [
           {
@@ -62,16 +59,14 @@ export async function GET(
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       },
@@ -83,7 +78,7 @@ export async function GET(
     });
 
     // Toplam mesaj sayısı
-    const totalMessages = await prisma.message.count({
+    const totalMessages = await db.message.count({
       where: {
         OR: [
           {
@@ -99,7 +94,7 @@ export async function GET(
     });
 
     // Karşı taraftan gelen okunmamış mesajları okundu olarak işaretle
-    await prisma.message.updateMany({
+    await db.message.updateMany({
       where: {
         senderId: otherUserId,
         receiverId: currentUserId,
@@ -170,7 +165,7 @@ export async function POST(
     }
 
     // Alıcının var olduğunu kontrol et
-    const receiver = await prisma.user.findUnique({
+    const receiver = await db.user.findUnique({
       where: { id: receiverId },
       select: { id: true }
     });
@@ -191,7 +186,7 @@ export async function POST(
     }
 
     // Mesajı oluştur
-    const message = await prisma.message.create({
+    const message = await db.message.create({
       data: {
         senderId: session.user.id,
         receiverId,
@@ -203,16 +198,14 @@ export async function POST(
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         },
         receiver: {
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       }

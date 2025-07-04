@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { mediaQueries, isTouchDevice, colorContrast } from '@/lib/responsive-utils';
+import { isTouchDevice, colorContrast } from '@/lib/responsive-utils';
 
 export type ScreenSize = 'mobile' | 'tablet' | 'desktop';
 

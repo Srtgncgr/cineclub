@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +75,11 @@ export const HeartButton: React.FC<HeartButtonProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [localFavorite, setLocalFavorite] = useState(isFavorite);
+
+  // isFavorite prop'u değiştiğinde localFavorite'i güncelle
+  useEffect(() => {
+    setLocalFavorite(isFavorite);
+  }, [isFavorite]);
 
   const handleClick = () => {
     if (disabled) return;

@@ -82,6 +82,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Film zaten bu listede mevcut' }, { status: 400 });
     }
 
+    // --- YENİ: Maksimum 3 film kontrolü ---
+    const movieCount = await prisma.weeklyListMovie.count({
+      where: { weeklyListId }
+    });
+    if (movieCount >= 3) {
+      return NextResponse.json({ error: 'Bir haftalık listeye en fazla 3 film eklenebilir.' }, { status: 400 });
+    }
+    // --- SON ---
+
     // Eğer position belirtilmemişse, en son sırayı al
     let finalPosition = position;
     if (!finalPosition) {

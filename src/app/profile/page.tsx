@@ -37,7 +37,6 @@ interface UserStats {
   moviesRated: number;
   averageRating: number;
   favoriteMovies: number;
-  listsCreated: number;
   followers: number;
   following: number;
   totalWatchTime: string;
@@ -133,7 +132,6 @@ export default function ProfilePage() {
           moviesRated: profileData.stats.moviesRated,
           averageRating: profileData.stats.averageRating,
           favoriteMovies: profileData.stats.favoriteMovies,
-          listsCreated: profileData.stats.listsCreated,
           followers: profileData.stats.followers,
           following: profileData.stats.following,
           totalWatchTime: profileData.stats.totalWatchTime,

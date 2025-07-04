@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Avatar } from '@/components/ui/avatar';
 import { StarRating } from '@/components/ui/star-rating';
@@ -19,6 +19,7 @@ interface CommentFormProps {
     name: string;
     avatar: string;
   };
+  userRating?: number; // Dışarıdan gelen mevcut kullanıcı puanı
   maxLength?: number;
   className?: string;
 }
@@ -29,37 +30,16 @@ export const CommentForm: React.FC<CommentFormProps> = ({
   showRating = true,
   movieId,
   currentUser,
+  userRating: externalUserRating = 0,
   maxLength = 1000,
   className
 }) => {
   const [content, setContent] = useState('');
-  const [rating, setRating] = useState(0);
-  const [userRating, setUserRating] = useState(0); // Kullanıcının mevcut puanı
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [isLoadingRating, setIsLoadingRating] = useState(true);
 
-  // Kullanıcının mevcut puanını yükle
-  useEffect(() => {
-    const fetchUserRating = async () => {
-      try {
-        const response = await fetch(`/api/movies/${movieId}/vote`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.userVote?.rating) {
-            setUserRating(data.userVote.rating);
-            setRating(data.userVote.rating); // Form'da da göster
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching user rating:', error);
-      } finally {
-        setIsLoadingRating(false);
-      }
-    };
-
-    fetchUserRating();
-  }, [movieId]);
+  // External rating'i kullan (artık API çağrısı yok, senkronize)
+  const userRating = externalUserRating;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,10 +54,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
       return;
     }
 
-    if (showRating && userRating === 0) {
-      setError('Yorum yazmadan önce lütfen üstteki yıldızlardan puan verin');
-      return;
-    }
+    // Puan artık zorunlu değil - kullanıcı puansız yorum yazabilir
 
     setError('');
     setIsSubmitting(true);
@@ -85,7 +62,7 @@ export const CommentForm: React.FC<CommentFormProps> = ({
     try {
       await onSubmit({
         content: content.trim(),
-        rating: showRating ? userRating : undefined
+        rating: showRating && userRating > 0 ? userRating : undefined
       });
       
       // Form'u temizle (rating'i temizleme, mevcut puanı koru)
@@ -134,25 +111,23 @@ export const CommentForm: React.FC<CommentFormProps> = ({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Puanınız
           </label>
-          {isLoadingRating ? (
-            <div className="text-gray-500">Puan yükleniyor...</div>
-          ) : userRating > 0 ? (
+          {userRating > 0 ? (
             <div className="flex items-center gap-2">
-          <StarRating
+              <StarRating
                 rating={userRating}
                 onRatingChange={() => {}} // Değiştirilemez
-            size="lg"
+                size="lg"
                 showText={false}
-            className="mb-1"
-          />
+                className="mb-1"
+              />
               <span className="text-lg font-semibold text-gray-900">
                 {userRating}/5
               </span>
             </div>
           ) : (
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-sm text-yellow-700">
-                Yorum yazmak için önce üstteki yıldızlardan puan verin
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                ⭐ Henüz puan vermediniz. İsterseniz üstteki yıldızlardan puan verebilirsiniz (opsiyonel)
               </p>
             </div>
           )}

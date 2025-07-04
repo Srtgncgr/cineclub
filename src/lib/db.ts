@@ -36,14 +36,18 @@ export const dbUtils = {
     try {
       const userCount = await db.user.count()
       const movieCount = await db.movie.count()
-      const voteCount = await db.vote.count()
+      const favoriteCount = await db.favorite.count()
       const commentCount = await db.comment.count()
+      const messageCount = await db.message.count()
+      const watchlistCount = await db.watchlist.count()
       
       return {
         users: userCount,
         movies: movieCount,
-        votes: voteCount,
+        favorites: favoriteCount,
         comments: commentCount,
+        messages: messageCount,
+        watchlistItems: watchlistCount,
         timestamp: new Date()
       }
     } catch (error) {
@@ -55,30 +59,34 @@ export const dbUtils = {
   // Clean up old data
   async cleanupOldData() {
     try {
-      // Clean up expired user sessions
-      const expiredSessions = await db.userSession.deleteMany({
+      // Clean up old messages (older than 1 year)
+      const oneYearAgo = new Date()
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+      
+      const oldMessages = await db.message.deleteMany({
         where: {
-          expiresAt: {
-            lt: new Date()
+          createdAt: {
+            lt: oneYearAgo
           }
         }
       })
 
-      // Clean up old activity logs (older than 6 months)
-      const sixMonthsAgo = new Date()
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+      // Clean up old comments without content (older than 3 months)
+      const threeMonthsAgo = new Date()
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
       
-      const oldActivities = await db.userActivity.deleteMany({
+      const emptyComments = await db.comment.deleteMany({
         where: {
-          createdAt: {
-            lt: sixMonthsAgo
-          }
+          AND: [
+            { content: { equals: "" } },
+            { createdAt: { lt: threeMonthsAgo } }
+          ]
         }
       })
 
       return {
-        expiredSessions: expiredSessions.count,
-        oldActivities: oldActivities.count,
+        oldMessages: oldMessages.count,
+        emptyComments: emptyComments.count,
         timestamp: new Date()
       }
     } catch (error) {

@@ -9,7 +9,7 @@
     "lint": "next lint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "echo 'No seed file available'",
     "db:seed:movies": "tsx scripts/seed-movies.ts",
     "db:seed:users-comments": "tsx scripts/seed-users-and-comments.ts",
     "db:studio": "prisma studio",
@@ -32,6 +32,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.3.0",
+    "use-debounce": "^10.0.5",
     "zod": "^3.25.56"
   },
   "devDependencies": {

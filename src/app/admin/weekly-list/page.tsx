@@ -47,7 +47,7 @@ interface WeeklyList {
   description: string;
   startDate: string;
   endDate: string;
-  status: 'draft' | 'active' | 'completed' | 'cancelled';
+  status: 'draft' | 'active' | 'completed' | 'cancelled' | 'archived';
   movies: WeeklyListMovie[];
   theme?: string;
   createdAt: string;
@@ -77,6 +77,7 @@ export default function WeeklyListManagement() {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    theme: '',
     startDate: '',
     endDate: ''
   });
@@ -335,6 +336,7 @@ export default function WeeklyListManagement() {
     setFormData({
       title: list.title,
       description: list.description,
+      theme: list.theme || '',
       startDate: new Date(list.startDate).toISOString().split('T')[0],
       endDate: new Date(list.endDate).toISOString().split('T')[0]
     });
@@ -367,7 +369,7 @@ export default function WeeklyListManagement() {
         alert('Haftalık liste başarıyla güncellendi!');
         setShowEditModal(false);
         setEditingList(null);
-        setFormData({ title: '', description: '', startDate: '', endDate: '' });
+        setFormData({ title: '', description: '', theme: '', startDate: '', endDate: '' });
         fetchWeeklyLists();
       } else {
         alert('Hata: ' + (data.error || 'Liste güncellenemedi'));
@@ -407,22 +409,20 @@ export default function WeeklyListManagement() {
 
   // Tekil liste durumu değiştirme
   const handleToggleListStatus = async (listId: string, currentStatus: string) => {
-    const newAction = currentStatus === 'active' ? 'cancel' : 'publish';
-    const message = newAction === 'publish' ? 'Liste yayınlanacak' : 'Liste iptal edilecek';
+    const message = currentStatus === 'active' ? 'Liste iptal edilecek' : 'Liste aktif hale getirilecek. Diğer aktif listeler otomatik olarak arşivlenecek';
     
     if (!confirm(`${message}. Emin misiniz?`)) {
       return;
     }
 
     try {
-      const response = await fetch('/api/admin/weekly-lists', {
+      const response = await fetch(`/api/admin/weekly-lists/${listId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          listIds: [listId],
-          action: newAction
+          action: 'toggle'
         }),
       });
 
@@ -476,7 +476,7 @@ export default function WeeklyListManagement() {
       if (response.ok) {
         alert('Haftalık liste başarıyla oluşturuldu!');
         setShowCreateModal(false);
-        setFormData({ title: '', description: '', startDate: '', endDate: '' });
+        setFormData({ title: '', description: '', theme: '', startDate: '', endDate: '' });
         fetchWeeklyLists();
       } else {
         alert('Hata: ' + (result.error || result.message || 'Liste oluşturulamadı'));
@@ -498,8 +498,7 @@ export default function WeeklyListManagement() {
     const matchesStatus = selectedStatus === 'all' || list.status === selectedStatus;
     const matchesTab = activeTab === 'all' || 
       (activeTab === 'current' && list.status === 'active') ||
-      (activeTab === 'draft' && list.status === 'draft') ||
-      (activeTab === 'history' && (list.status === 'completed' || list.status === 'cancelled'));
+      (activeTab === 'history' && (list.status === 'completed' || list.status === 'cancelled' || list.status === 'archived'));
     
     return matchesSearch && matchesStatus && matchesTab;
   });
@@ -507,13 +506,12 @@ export default function WeeklyListManagement() {
   // İstatistikler
   const totalLists = weeklyLists.length;
   const activeLists = weeklyLists.filter(list => list.status === 'active').length;
-  const draftLists = weeklyLists.filter(list => list.status === 'draft').length;
+  const historyLists = weeklyLists.filter(list => ['completed', 'cancelled', 'archived'].includes(list.status)).length;
   
   const tabCounts = {
     all: totalLists,
     current: activeLists,
-    draft: draftLists,
-    history: weeklyLists.filter(list => list.status === 'completed').length
+    history: historyLists
   };
 
   const sortedLists = [...filteredLists].sort((a, b) => {
@@ -609,15 +607,11 @@ export default function WeeklyListManagement() {
               Haftalık Liste Yönetimi
             </h1>
             <p className="text-gray-600 mt-1">
-              {totalLists} liste • {activeLists} aktif • {draftLists} taslak
+              {totalLists} liste • {activeLists} aktif • {historyLists} geçmiş
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button variant="outline">
-              <Trophy className="w-4 h-4 mr-2" />
-              Geçmiş Sonuçlar
-            </Button>
             <Button variant="primary" onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Yeni Liste
@@ -626,7 +620,7 @@ export default function WeeklyListManagement() {
         </div>
 
         {/* İstatistik Kartları */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
             <div className="flex items-center justify-between">
               <div>
@@ -652,17 +646,7 @@ export default function WeeklyListManagement() {
           </div>
 
 
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Taslak Liste</p>
-                <p className="text-2xl font-bold text-gray-900">{draftLists}</p>
-              </div>
-              <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500">
-                <Edit className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          </div>
+
         </div>
 
         {/* Tab Navigation */}
@@ -672,7 +656,6 @@ export default function WeeklyListManagement() {
               {[
                 { key: 'all', label: 'Tümü', icon: Calendar },
                 { key: 'current', label: 'Aktif', icon: PlayCircle },
-                { key: 'draft', label: 'Taslak', icon: Edit },
                 { key: 'history', label: 'Geçmiş', icon: Trophy }
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -727,9 +710,9 @@ export default function WeeklyListManagement() {
                 >
                   <option value="all">Tüm Durumlar</option>
                   <option value="active">Aktif</option>
-                  <option value="draft">Taslak</option>
                   <option value="completed">Tamamlandı</option>
                   <option value="cancelled">İptal</option>
+                  <option value="archived">Arşivlenmiş</option>
                 </select>
 
                 <select
@@ -903,9 +886,13 @@ export default function WeeklyListManagement() {
                         {list.movies.map((movie) => (
                           <div key={movie.id} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                             <img
-                              src={movie.poster}
+                              src={movie.poster ? `https://image.tmdb.org/t/p/w200${movie.poster}` : '/placeholder.svg'}
                               alt={movie.title}
                               className="w-12 h-18 object-cover rounded"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.src = '/placeholder.svg';
+                              }}
                             />
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -916,11 +903,11 @@ export default function WeeklyListManagement() {
                                   {movie.title}
                                 </h5>
                               </div>
-                              <p className="text-xs text-gray-600 mb-1">{movie.director} • {movie.year}</p>
+                              <p className="text-xs text-gray-600 mb-1">{movie.year}</p>
                               <div className="flex items-center gap-2">
                                 <div className="flex items-center gap-1">
                                   <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                  <span className="text-xs font-medium">{movie.rating}</span>
+                                  <span className="text-xs font-medium">{movie.rating?.toFixed(1) || 'N/A'}</span>
                                 </div>
                               </div>
                             </div>
@@ -1010,6 +997,20 @@ export default function WeeklyListManagement() {
                        onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
                        placeholder="Liste hakkında kısa açıklama..."
+                     />
+                   </div>
+
+                   {/* Tema */}
+                   <div>
+                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                       Tema
+                     </label>
+                     <input
+                       type="text"
+                       value={formData.theme}
+                       onChange={(e) => setFormData(prev => ({ ...prev, theme: e.target.value }))}
+                       className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                       placeholder="Örn: Dünya Sineması, Aksiyon Filmleri..."
                      />
                    </div>
 
@@ -1127,12 +1128,16 @@ export default function WeeklyListManagement() {
                       }}
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Film adı yazın..."
+                      disabled={listMovies.length >= 3}
                     />
                   </div>
+                  {listMovies.length >= 3 && (
+                    <p className="text-red-500 text-sm mt-2">Bir haftalık listeye en fazla 3 film ekleyebilirsiniz.</p>
+                  )}
                 </div>
 
                 {/* Arama Sonuçları */}
-                {movieSearchQuery && (
+                {movieSearchQuery && listMovies.length < 3 && (
                   <div className="mb-6">
                     <h3 className="text-sm font-medium text-gray-700 mb-3">Arama Sonuçları</h3>
                     {loadingMovies ? (
@@ -1161,6 +1166,7 @@ export default function WeeklyListManagement() {
                               variant="primary"
                               size="sm"
                               onClick={() => addMovieToList(movie.id)}
+                              disabled={listMovies.length >= 3}
                             >
                               <Plus className="w-4 h-4 mr-1" />
                               Ekle
@@ -1215,6 +1221,39 @@ export default function WeeklyListManagement() {
                     <p className="text-gray-500 text-center py-8">Bu listede henüz film yok</p>
                   )}
                 </div>
+
+                {/* Modal Footer */}
+                <div className="flex gap-3 pt-4 border-t border-gray-200">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowMovieModal(false);
+                      setMovieSearchQuery('');
+                      setSearchResults([]);
+                      setSelectedListForMovies(null);
+                    }}
+                    className="flex-1"
+                  >
+                    Kapat
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => {
+                      alert(`${listMovies.length} film başarıyla listeye eklendi!`);
+                      setShowMovieModal(false);
+                      setMovieSearchQuery('');
+                      setSearchResults([]);
+                      setSelectedListForMovies(null);
+                      fetchWeeklyLists(); // Ana listeyi yenile
+                    }}
+                    className="flex-1"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Tamamla ({listMovies.length} film)
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -1231,7 +1270,7 @@ export default function WeeklyListManagement() {
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingList(null);
-                    setFormData({ title: '', description: '', startDate: '', endDate: '' });
+                    setFormData({ title: '', description: '', theme: '', startDate: '', endDate: '' });
                   }}
                   className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                 >
@@ -1271,6 +1310,20 @@ export default function WeeklyListManagement() {
                     />
                   </div>
 
+                  {/* Tema */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tema
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.theme}
+                      onChange={(e) => setFormData(prev => ({ ...prev, theme: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="Örn: Dünya Sineması, Aksiyon Filmleri..."
+                    />
+                  </div>
+
                   {/* Tarih Aralığı */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1307,7 +1360,7 @@ export default function WeeklyListManagement() {
                       onClick={() => {
                         setShowEditModal(false);
                         setEditingList(null);
-                        setFormData({ title: '', description: '', startDate: '', endDate: '' });
+                        setFormData({ title: '', description: '', theme: '', startDate: '', endDate: '' });
                       }}
                       className="flex-1"
                       disabled={creating}

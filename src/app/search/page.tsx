@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import SearchInput, { useSearchInput } from '@/components/ui/search-input';
@@ -18,117 +19,6 @@ import { cn } from '@/lib/utils';
 
 const years = Array.from({ length: 50 }, (_, i) => 2024 - i);
 
-const mockMovies = [
-  {
-    id: 1,
-    title: "Fight Club",
-    year: 1999,
-    rating: 8.8,
-    poster: "https://image.tmdb.org/t/p/w500/pB8BM7pdSp6B6Ih7QZ4DrQ3PmJK.jpg",
-    genres: ["Drama", "Gerilim"],
-    director: "David Fincher"
-  },
-  {
-    id: 2,
-    title: "The Godfather",
-    year: 1972,
-    rating: 9.2,
-    poster: "https://image.tmdb.org/t/p/w500/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
-    genres: ["Suç", "Drama"],
-    director: "Francis Ford Coppola"
-  },
-  {
-    id: 3,
-    title: "The Dark Knight",
-    year: 2008,
-    rating: 9.0,
-    poster: "https://image.tmdb.org/t/p/w500/qJ2tW6WMUDux911r6m7haRef0WH.jpg",
-    genres: ["Aksiyon", "Suç", "Drama"],
-    director: "Christopher Nolan"
-  },
-  {
-    id: 4,
-    title: "Pulp Fiction",
-    year: 1994,
-    rating: 8.9,
-    poster: "https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg",
-    genres: ["Suç", "Drama"],
-    director: "Quentin Tarantino"
-  },
-  {
-    id: 5,
-    title: "Inception",
-    year: 2010,
-    rating: 8.7,
-    poster: "https://image.tmdb.org/t/p/w500/ljsZTbVsrQSqZgWeep2B1QiDKuh.jpg",
-    genres: ["Aksiyon", "Bilim Kurgu", "Gerilim"],
-    director: "Christopher Nolan"
-  },
-  {
-    id: 6,
-    title: "Forrest Gump",
-    year: 1994,
-    rating: 8.8,
-    poster: "https://image.tmdb.org/t/p/w500/arw2vcBveWOVZr6pxd9XTd1TdQa.jpg",
-    genres: ["Drama", "Romantik", "Komedi"],
-    director: "Robert Zemeckis"
-  },
-  {
-    id: 7,
-    title: "The Shawshank Redemption",
-    year: 1994,
-    rating: 9.3,
-    poster: "https://image.tmdb.org/t/p/w500/9cqNxx0GxF0bflyCy3FpPiy3BXg.jpg",
-    genres: ["Drama", "Suç"],
-    director: "Frank Darabont"
-  },
-  {
-    id: 8,
-    title: "Interstellar",
-    year: 2014,
-    rating: 8.6,
-    poster: "https://image.tmdb.org/t/p/w500/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg",
-    genres: ["Bilim Kurgu", "Drama", "Macera"],
-    director: "Christopher Nolan"
-  },
-  {
-    id: 9,
-    title: "Goodfellas",
-    year: 1990,
-    rating: 8.7,
-    poster: "https://image.tmdb.org/t/p/w500/aKuFiU82s5ISJpGZp7YkIr3kCUd.jpg",
-    genres: ["Suç", "Drama"],
-    director: "Martin Scorsese"
-  },
-  {
-    id: 10,
-    title: "The Matrix",
-    year: 1999,
-    rating: 8.7,
-    poster: "https://image.tmdb.org/t/p/w500/f89U3ADr1oiB1s9GkdPOEpXUk5H.jpg",
-    genres: ["Aksiyon", "Bilim Kurgu"],
-    director: "Lana Wachowski"
-  },
-  {
-    id: 11,
-    title: "Parasite",
-    year: 2019,
-    rating: 8.5,
-    poster: "https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
-    genres: ["Komedi", "Drama", "Gerilim"],
-    director: "Bong Joon-ho"
-  },
-  {
-    id: 12,
-    title: "Spirited Away",
-    year: 2001,
-    rating: 9.3,
-    poster: "https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
-    genres: ["Animasyon", "Macera", "Fantastik"],
-    director: "Hayao Miyazaki"
-  }
-];
-
 // Search suggestions - kategoriler ve genel terimler
 const searchSuggestions = [
   'Aksiyon', 'Drama', 'Komedi', 'Korku', 'Romantik', 'Bilim Kurgu',
@@ -136,7 +26,8 @@ const searchSuggestions = [
   '2024 filmleri', '2023 filmleri', 'En yeni filmler', 'Popüler filmler'
 ];
 
-export default function SearchPage() {
+// SearchParams kullanan component
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -292,7 +183,6 @@ export default function SearchPage() {
       addToRecentSearches(query.trim());
       // URL'i güncelle ama input'u temizleme, URL'den gelecek
       router.push(`/search?q=${encodeURIComponent(query.trim())}`, { scroll: false });
-      console.log('Searching for:', query);
     }
   };
 
@@ -306,18 +196,6 @@ export default function SearchPage() {
       const movieRating = movie.localVoteAverage || movie.voteAverage || 0;
       
       const movieGenres = movie.genres ? movie.genres.map((g: any) => g.genre?.name || 'Bilinmiyor') : [];
-      
-      // Debug için log
-      if (movie.id === localMovies[0]?.id) {
-        console.log('Movie debug:', {
-          title: movie.title,
-          localVoteAverage: movie.localVoteAverage,
-          voteAverage: movie.voteAverage,
-          rating: movieRating,
-          genres: movieGenres,
-          rawGenres: movie.genres
-        });
-      }
       
       return {
         id: movie.id,
@@ -343,18 +221,10 @@ export default function SearchPage() {
 
     // Kategori filtresi
     if (selectedCategories.length > 0) {
-      console.log('Filter debug:', {
-        selectedCategories,
-        availableGenres: [...new Set(filtered.flatMap(m => m.genres))],
-        beforeFilterCount: filtered.length
-      });
-      
       filtered = filtered.filter(movie => {
         const hasMatchingGenre = movie.genres.some((genre: string) => selectedCategories.includes(genre));
         return hasMatchingGenre;
       });
-      
-      console.log('After category filter:', filtered.length);
     }
 
     // Yıl filtresi
@@ -686,11 +556,10 @@ export default function SearchPage() {
             {!isLoading && filteredMovies.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredMovies.map((movie) => (
-                  <div
-                    key={movie.id}
-                    className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => router.push(`/movies/${movie.id}`)}
-                  >
+                  <Link href={`/movies/${movie.id}`} key={movie.id}>
+                    <div
+                      className="bg-white rounded-xl overflow-hidden border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                    >
                     <img
                       src={movie.poster}
                       alt={movie.title}
@@ -720,7 +589,8 @@ export default function SearchPage() {
                         ))}
                       </div>
                     </div>
-                  </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             ) : !isLoading && (
@@ -750,4 +620,24 @@ export default function SearchPage() {
     </div>
   );
 } 
+
+// Ana component - Suspense ile sarmalıyor
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-16">
+            <div className="inline-flex items-center gap-2 text-primary">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-lg font-medium">Yükleniyor...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
+  );
+}
  

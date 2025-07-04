@@ -3,7 +3,7 @@ import { getAuthSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getAuthSession();
     
@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
         displayName: true,
         username: true,
         email: true,
-        avatar: true,
         role: true,
         createdAt: true,
         updatedAt: true,
@@ -29,14 +28,9 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             addedMovies: true,
-            votes: true,
+  
             comments: true,
             sentMessages: true
-          }
-        },
-        votes: {
-          select: {
-            rating: true
           }
         }
       },
@@ -47,10 +41,8 @@ export async function GET(request: NextRequest) {
 
     // Kullanıcı verilerini formatla
     const formattedUsers = users.map(user => {
-      // Ortalama rating hesapla
-      const avgRating = user.votes.length > 0 
-        ? user.votes.reduce((sum, vote) => sum + vote.rating, 0) / user.votes.length
-        : 0;
+      // Ortalama rating hesapla (votes tablosu kaldırıldı)
+      const avgRating = 0;
 
       // Son aktivite (şimdilik updatedAt kullanıyoruz)
       const lastActive = user.updatedAt;
@@ -84,14 +76,14 @@ export async function GET(request: NextRequest) {
         name: user.displayName || user.username,
         username: user.username,
         email: user.email,
-        avatar: user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.displayName || user.username)}&background=8E1616&color=fff`,
+
         role: user.role.toLowerCase(),
         status,
         joinDate: user.createdAt.toISOString().split('T')[0],
         lastActive: lastActiveText,
         stats: {
           movieCount: user._count.addedMovies,
-          reviewCount: user._count.votes,
+          reviewCount: user._count.comments,
           messageCount: user._count.sentMessages,
           avgRating: Math.round(avgRating * 10) / 10
         },
@@ -180,8 +172,7 @@ export async function POST(request: NextRequest) {
         username: username,
         email: email,
         password: hashedPassword,
-        role: role.toUpperCase(),
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=8E1616&color=fff`
+        role: role.toUpperCase()
       }
     });
 

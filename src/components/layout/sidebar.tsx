@@ -5,7 +5,6 @@ import { cn } from '@/lib/utils';
 import { 
   X, 
   Film, 
-  Star, 
   Users, 
   MessageCircle, 
   User, 

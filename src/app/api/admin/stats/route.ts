@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { db } from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getAuthSession();
     
@@ -48,15 +48,6 @@ export async function GET(request: NextRequest) {
       where: {
         OR: [
           {
-            votes: {
-              some: {
-                createdAt: {
-                  gte: dayAgo
-                }
-              }
-            }
-          },
-          {
             comments: {
               some: {
                 createdAt: {
@@ -67,6 +58,15 @@ export async function GET(request: NextRequest) {
           },
           {
             favorites: {
+              some: {
+                createdAt: {
+                  gte: dayAgo
+                }
+              }
+            }
+          },
+          {
+            watchlist: {
               some: {
                 createdAt: {
                   gte: dayAgo
@@ -83,15 +83,6 @@ export async function GET(request: NextRequest) {
       where: {
         OR: [
           {
-            votes: {
-              some: {
-                createdAt: {
-                  gte: weekAgo
-                }
-              }
-            }
-          },
-          {
             comments: {
               some: {
                 createdAt: {
@@ -108,16 +99,25 @@ export async function GET(request: NextRequest) {
                 }
               }
             }
+          },
+          {
+            watchlist: {
+              some: {
+                createdAt: {
+                  gte: weekAgo
+                }
+              }
+            }
           }
         ]
       }
     });
 
-    // Toplam değerlendirme sayısı
-    const totalReviews = await db.vote.count();
+    // Toplam değerlendirme sayısı (tüm yorumlar)
+    const totalReviews = await db.comment.count();
     
     // Bu hafta yapılan değerlendirmeler
-    const reviewsThisWeek = await db.vote.count({
+    const reviewsThisWeek = await db.comment.count({
       where: {
         createdAt: {
           gte: weekAgo

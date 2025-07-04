@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/app/api/auth/[...nextauth]/route'
-import { PrismaClient } from '@/generated/prisma'
+import { auth } from '@/lib/auth'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -49,8 +49,7 @@ export async function PUT(
           select: {
             id: true,
             username: true,
-            displayName: true,
-            avatar: true
+            displayName: true
           }
         }
       }

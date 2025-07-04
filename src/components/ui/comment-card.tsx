@@ -119,7 +119,8 @@ export const CommentCard: React.FC<CommentCardProps> = ({
   };
 
   const canShowReplies = showReplies && comment.replies && comment.replies.length > 0;
-  const canReply = currentDepth < maxDepth;
+  // Herkes herkese yanıt yazabilir (kendi yorumuna da dahil) - sadece derinlik kısıtlaması var
+  const canReply = currentDepth < maxDepth && currentUserId; // Login olmuş kullanıcılar yanıt yazabilir
   const isOwner = currentUserId && comment.user.id === currentUserId;
 
   return (
@@ -157,7 +158,7 @@ export const CommentCard: React.FC<CommentCardProps> = ({
             </div>
             
             {/* Rating (varsa) */}
-            {comment.rating && (
+            {comment.rating && comment.rating > 0 && (
               <div className="mb-2">
                 <StarRating
                   rating={comment.rating}

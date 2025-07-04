@@ -10,7 +10,7 @@ export async function GET() {
     const movies = await db.movie.findMany({
       include: {
         genres: { include: { genre: true } },
-        votes: true,
+        
       },
       orderBy: {
         createdAt: "desc",

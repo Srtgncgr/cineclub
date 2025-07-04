@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
@@ -57,8 +57,7 @@ export async function GET(
           select: {
             id: true,
             displayName: true,
-            email: true,
-            avatar: true
+            email: true
           }
         },
         replies: {
@@ -67,8 +66,7 @@ export async function GET(
               select: {
                 id: true,
                 displayName: true,
-                email: true,
-                avatar: true
+                email: true
               }
             }
           },
@@ -107,14 +105,14 @@ export async function GET(
       comments: comments.map(comment => ({
         id: comment.id,
         content: comment.content,
-        rating: comment.rating,
+        rating: comment.rating > 0 ? comment.rating : null,
         likes: comment.likeCount,
         dislikes: comment.dislikeCount,
         date: comment.createdAt,
         user: {
           id: comment.user.id,
           name: comment.user.displayName || 'Anonim',
-          avatar: comment.user.avatar || '/placeholder-avatar.png'
+          avatar: '/placeholder-avatar.png'
         },
         replies: comment.replies.map(reply => ({
           id: reply.id,
@@ -125,7 +123,7 @@ export async function GET(
           user: {
             id: reply.user.id,
             name: reply.user.displayName || 'Anonim',
-            avatar: reply.user.avatar || '/placeholder-avatar.png'
+            avatar: '/placeholder-avatar.png'
           }
         }))
       })),
@@ -231,74 +229,102 @@ export async function POST(
       }
     }
 
-    // Mevcut yorum/rating kontrolü
-    const existingComment = await prisma.comment.findFirst({
-      where: {
-        userId: user.id,
-        movieId: resolvedParams.id,
-        parentId: parentId || null
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true,
-            avatar: true
-          }
-        }
-      }
-    });
-
     let comment;
+    let isUpdate = false;
 
-    if (existingComment) {
-      // Mevcut yorumu güncelle
-      comment = await prisma.comment.update({
-        where: { id: existingComment.id },
+    if (parentId) {
+      // REPLY: Aynı kullanıcı aynı yoruma birden fazla reply yazabilir
+      comment = await prisma.comment.create({
         data: {
           content: content.trim(),
-          // Rating sadece belirtilmişse güncelle, yoksa mevcut rating'i koru
-          rating: parentId ? existingComment.rating : (rating !== undefined ? rating : existingComment.rating),
-          updatedAt: new Date()
+          rating: 0, // Reply'larda rating 0
+          movieId: resolvedParams.id,
+          userId: user.id,
+          parentId: parentId
         },
         include: {
           user: {
             select: {
               id: true,
               displayName: true,
-              email: true,
-              avatar: true
+              email: true
             }
           }
         }
       });
     } else {
-      // Yeni yorum oluştur
-      comment = await prisma.comment.create({
-        data: {
-          content: content.trim(),
-          rating: parentId ? 0 : rating || 0, // Reply'larda rating 0
-          movieId: resolvedParams.id,
+      // ANA YORUM: Aynı kullanıcı aynı filme sadece 1 ana yorum yazabilir
+      const existingComment = await prisma.comment.findFirst({
+        where: {
           userId: user.id,
-          parentId: parentId || null
+          movieId: resolvedParams.id,
+          parentId: null
         },
         include: {
           user: {
             select: {
               id: true,
               displayName: true,
-              email: true,
-              avatar: true
+              email: true
             }
           }
         }
       });
+
+      if (existingComment) {
+        // Mevcut ana yorumu güncelle
+        isUpdate = true;
+        comment = await prisma.comment.update({
+          where: { id: existingComment.id },
+          data: {
+            content: content.trim(),
+            rating: rating !== undefined ? (rating > 0 ? rating : 0) : existingComment.rating,
+            updatedAt: new Date()
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                email: true
+              }
+            }
+          }
+        });
+      } else {
+        // Yeni ana yorum oluştur
+        comment = await prisma.comment.create({
+          data: {
+            content: content.trim(),
+            rating: rating && rating > 0 ? rating : 0,
+            movieId: resolvedParams.id,
+            userId: user.id,
+            parentId: null
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                email: true
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Mesajı duruma göre belirle
+    let message = 'Yorumunuz başarıyla eklendi';
+    if (parentId) {
+      message = 'Yanıtınız başarıyla eklendi';
+    } else if (isUpdate) {
+      message = 'Yorumunuz başarıyla güncellendi';
     }
 
     return NextResponse.json({
       success: true,
-      message: existingComment ? 'Yorumunuz başarıyla güncellendi' : 'Yorumunuz başarıyla eklendi',
+      message,
       comment: {
         id: comment.id,
         content: comment.content,
@@ -309,7 +335,7 @@ export async function POST(
         user: {
           id: comment.user.id,
           name: comment.user.displayName || 'Anonim',
-          avatar: comment.user.avatar || '/placeholder-avatar.png'
+          avatar: '/placeholder-avatar.png'
         },
         replies: []
       }
@@ -317,8 +343,13 @@ export async function POST(
 
   } catch (error) {
     console.error('Create comment API error:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
-      { error: 'Yorum eklenirken bir hata oluştu' },
+      { error: 'Yorum eklenirken bir hata oluştu', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

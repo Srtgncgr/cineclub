@@ -1,10 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge } from '@/components/ui/badge';
 import { HeartButton } from '@/components/ui/heart-button';
 import { Star } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
@@ -37,7 +35,7 @@ export default function MovieList({ movies }: MovieListProps) {
           const response = await fetch('/api/favorites');
           if (response.ok) {
             const data = await response.json();
-            const favoriteIds = new Set<string>(data.map((fav: any) => fav.movie.id as string));
+            const favoriteIds = new Set<string>(data.map((fav: { movie: { id: string } }) => fav.movie.id));
             setFavorites(favoriteIds);
           }
         } catch (error) {
@@ -48,7 +46,7 @@ export default function MovieList({ movies }: MovieListProps) {
     loadUserFavorites();
   }, [session]);
 
-  const handleFavoriteToggle = async (movieId: string, isFavorite: boolean) => {
+  const handleFavoriteToggle = async (movieId: string, _isFavorite: boolean) => {
     // Session kontrolü
     if (!session?.user) {
       alert('Favorilere eklemek için giriş yapmanız gerekiyor.');
@@ -117,14 +115,14 @@ export default function MovieList({ movies }: MovieListProps) {
           {/* Heart Button - Hover'da görünür */}
           <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div title={!session?.user ? "Favorilere eklemek için giriş yapın" : undefined}>
-              <HeartButton
-                isFavorite={favorites.has(movie.id)}
-                variant="default"
-                size="md"
+            <HeartButton
+              isFavorite={favorites.has(movie.id)}
+              variant="default"
+              size="md"
                 disabled={!session?.user}
-                onToggle={(isFavorite) => handleFavoriteToggle(movie.id, isFavorite)}
+              onToggle={(isFavorite) => handleFavoriteToggle(movie.id, isFavorite)}
                 showTooltip={!!session?.user}
-              />
+            />
             </div>
           </div>
 

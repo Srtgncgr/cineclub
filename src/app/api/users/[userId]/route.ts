@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { auth } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -26,10 +26,8 @@ export async function GET(
         id: true,
         username: true,
         displayName: true,
-        avatar: true,
         bio: true,
         role: true,
-        isPrivate: true,
         joinDate: true,
         createdAt: true,
         updatedAt: true
@@ -48,10 +46,9 @@ export async function GET(
       id: user.id,
       name: user.displayName || user.username,
       username: user.username,
-      avatar: user.avatar || '/default-avatar.png',
+      
       bio: user.bio,
       role: user.role,
-      isPrivate: user.isPrivate,
       joinDate: user.joinDate,
       isOnline: false, // Bu bilgiyi gerçek zamanlı olarak almak için başka bir sistem gerekebilir
       lastSeen: user.updatedAt
@@ -159,10 +156,8 @@ export async function PATCH(
         id: true,
         username: true,
         displayName: true,
-        avatar: true,
         bio: true,
         role: true,
-        isPrivate: true,
         joinDate: true,
         updatedAt: true
       }
@@ -175,10 +170,9 @@ export async function PATCH(
         id: updatedUser.id,
         name: updatedUser.displayName || updatedUser.username,
         username: updatedUser.username,
-        avatar: updatedUser.avatar || '/default-avatar.png',
+
         bio: updatedUser.bio,
         role: updatedUser.role,
-        isPrivate: updatedUser.isPrivate,
         joinDate: updatedUser.joinDate,
         lastSeen: updatedUser.updatedAt
       }

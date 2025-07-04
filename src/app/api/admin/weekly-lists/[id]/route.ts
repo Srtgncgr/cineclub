@@ -84,7 +84,57 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const resolvedParams = await params;
     const listId = resolvedParams.id;
     const body = await request.json();
-    const { title, description, startDate, endDate } = body;
+
+    // Eğer action=toggle gelirse, durumu değiştir
+    if (body.action === 'toggle') {
+      const currentList = await prisma.weeklyList.findUnique({
+        where: { id: listId },
+        select: { status: true }
+      });
+
+      if (!currentList) {
+        return NextResponse.json({ error: 'Liste bulunamadı' }, { status: 404 });
+      }
+
+      let newStatus: string;
+      let message: string;
+
+      if (currentList.status === 'ACTIVE') {
+        // Aktif listeden pasif hale getir
+        newStatus = 'ARCHIVED';
+        message = 'Liste başarıyla iptal edildi';
+      } else {
+        // Pasif listeden aktif hale getir
+        // Önce diğer tüm aktif listeleri arşivle
+        await prisma.weeklyList.updateMany({
+          where: {
+            status: 'ACTIVE',
+            NOT: { id: listId }
+          },
+          data: {
+            status: 'ARCHIVED',
+            updatedAt: new Date()
+          }
+        });
+
+        newStatus = 'ACTIVE';
+        message = 'Liste başarıyla aktif hale getirildi';
+      }
+
+      // Hedef listeyi güncelle
+      await prisma.weeklyList.update({
+        where: { id: listId },
+        data: {
+          status: newStatus,
+          updatedAt: new Date()
+        }
+      });
+
+      return NextResponse.json({ message });
+    }
+
+    // Normal güncelleme işlemi
+    const { title, description, theme, startDate, endDate } = body;
 
     // Liste güncelle
     const updatedList = await prisma.weeklyList.update({
@@ -92,6 +142,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       data: {
         title,
         description: description || '',
+        theme: theme || '',
         startDate: new Date(startDate),
         endDate: new Date(endDate),
         updatedAt: new Date()

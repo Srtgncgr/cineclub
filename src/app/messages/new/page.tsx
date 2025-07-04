@@ -15,10 +15,8 @@ interface User {
   id: string;
   username: string;
   displayName: string;
-  avatar: string;
   bio: string;
   role: string;
-  isPrivate: boolean;
   joinDate: string;
   lastMessage?: {
     content: string;
@@ -151,7 +149,6 @@ export default function NewMessagePage() {
                 >
                   <div className="flex items-center gap-4">
                     <Avatar
-                      src={user.avatar}
                       alt={user.displayName}
                       size="md"
                     />
